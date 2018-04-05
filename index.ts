@@ -352,9 +352,4 @@ bot.on('guildMemberAdd', async (member) => {
             `Be sure to review the Code of Conduct at https://rpg-talk.com/Code%20of%20Conduct.pdf.`)
             .catch(err => console.log(err))
     } catch (error) { }
-
-    try {
-        let introductionsChannel = member.guild.channels.find(channel => channel.name == 'introductions' && channel.type == 'text') as TextChannel;
-        await introductionsChannel.send(`*@${member.displayName} has joined*`) as any;
-    } catch (error) { }
 });
