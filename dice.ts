@@ -387,7 +387,7 @@ Dice.prototype.execute = function () {
     i = self.command.indexOf(";");
     if (i >= 0) {
         self.comment = self.command.substr(i + 1, self.command.length);
-        self.command = self.command.substr(0, i);
+        self.command = self.command.substr(0, i).toLowerCase();
     }
 
     parse(self.command).forEach(function (c) {
