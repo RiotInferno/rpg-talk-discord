@@ -135,7 +135,7 @@ let channelsCommand = new Command(bot, {
     group: 'channels',
     memberName: 'channels',
     description: 'List all channels.',
-    aliases: ['channel']
+    aliases: ['channel', 'topics', 'topic']
 });
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
