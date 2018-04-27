@@ -101,6 +101,13 @@ createCommand.run = async (message: CommandMessage, args: string): Promise<any> 
     }
 }
 
+createCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(createCommand);
+
 let topicCommand = new Command(bot, {
     name: 'topic',
     group: 'channels',
@@ -122,13 +129,6 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 }
 
 bot.registry.registerCommand(topicCommand);
-
-createCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
-}
-
-bot.registry.registerCommand(createCommand);
 
 let channelsCommand = new Command(bot, {
     name: 'channels',
