@@ -117,6 +117,8 @@ let queryCommand = new Command(bot, {
 });
 
 queryCommand.run = async (message: CommandMessage, argsString: string): Promise<any> => {
+    message.delete().catch(err => console.log(err))
+    
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
     let memberId = args[0].replace(/\D/g, '');
 
