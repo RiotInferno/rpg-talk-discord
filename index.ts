@@ -120,7 +120,7 @@ queryCommand.run = async (message: CommandMessage, argsString: string): Promise<
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
     let memberId = args[0].replace(/\D/g, '');
 
-    let guild = detectGuild(this.bot, message);
+    let guild = detectGuild(bot, message);
     let queryingMember = guild.members.find("id", message.author.id)
     let foundMember = guild.members.find(member => member.id == memberId);
 
