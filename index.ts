@@ -5,6 +5,7 @@ require('dotenv').config()
 import { Message, TextChannel, Guild, GuildMember, Role } from 'discord.js'
 import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
 import * as _ from 'lodash'
+import * as moment from 'moment-timezone'
 import Dice from './dice'
 import { blacklisted, allChannels, detectGuild, mapToRoles } from './utils'
 import { ChannelManager } from './channel_manager'
@@ -107,6 +108,43 @@ createCommand.hasPermission = (message: CommandMessage): boolean => {
 }
 
 bot.registry.registerCommand(createCommand);
+
+let queryCommand = new Command(bot, {
+    name: 'query',
+    group: 'channels',
+    memberName: 'query',
+    description: 'Query a user.'
+});
+
+queryCommand.run = async (message: CommandMessage, argsString: string): Promise<any> => {
+    let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
+    let memberId = args[0].replace(/\D/g, '');
+
+    let guild = detectGuild(this.bot, message);
+    let queryingMember = guild.members.find("id", message.author.id)
+    let foundMember = guild.members.find(member => member.id == memberId);
+
+    if (!foundMember) {
+        let plainName = args[0].replace('@', '');
+        foundMember = guild.members.find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
+    }
+
+    if (foundMember) {
+        let date = moment(foundMember.joinedAt)
+        let dateString = date.format('MMMM Do YYYY, h:mm:ss a')
+        let dateTz = date.zoneName()
+        queryingMember.sendMessage(`${foundMember.guild.name} joined on ${dateString} ${dateTz}.`)
+    } else {
+        queryingMember.sendMessage(`Unable to query ${foundMember.guild.name}.`)
+    }
+}
+
+queryCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(queryCommand);
 
 let topicCommand = new Command(bot, {
     name: 'topic',
