@@ -1,6 +1,7 @@
 import { CommandMessage, CommandoClient } from 'discord.js-commando'
 import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js';
 import * as _ from 'lodash'
+import * as moment from 'moment-timezone'
 import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild } from './utils'
 
 export class ChannelManager {
@@ -26,10 +27,16 @@ export class ChannelManager {
       }
     }
 
+    let waitlistRoles = mapToRoles((process.env.WAITLIST || '').split(','), guild)
+    let daysJoined = moment().diff(moment(member.joinedAt), 'days', true)
+    if (_.intersection(roles.map(role => role.id), waitlistRoles.map(role => role.id)) && daysJoined < 3) {
+      throw Error(`Unable to join channel(s)`);
+    }
+
     roles = roles.filter(role => !member.roles.exists("name", role.name));
 
     if (roles.length == 0) {
-      throw Error('No valid channels to join');
+      throw Error(`Unable to join channel(s)`);
     }
 
     await member.addRoles(roles);
