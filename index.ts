@@ -130,12 +130,12 @@ queryCommand.run = async (message: CommandMessage, argsString: string): Promise<
     }
 
     if (foundMember) {
-        let date = moment(foundMember.joinedAt)
+        let date = moment(foundMember.joinedAt).tz('America/New_York')
         let dateString = date.format('MMMM Do YYYY, h:mm:ss a')
         let dateTz = date.zoneName()
-        queryingMember.sendMessage(`${foundMember.guild.name} joined on ${dateString} ${dateTz}.`)
+        queryingMember.sendMessage(`${foundMember.displayName} joined on ${dateString} ${dateTz}.`)
     } else {
-        queryingMember.sendMessage(`Unable to query ${foundMember.guild.name}.`)
+        queryingMember.sendMessage(`Unable to query ${foundMember.displayName}.`)
     }
 }
 
