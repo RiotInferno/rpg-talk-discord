@@ -29,7 +29,7 @@ export class ChannelManager {
 
     let waitlistRoles = mapToRoles((process.env.WAITLIST || '').split(','), guild)
     let daysJoined = moment().diff(moment(member.joinedAt), 'days', true)
-    if (_.intersection(roles.map(role => role.id), waitlistRoles.map(role => role.id)) && daysJoined < 3) {
+    if (_.intersection(roles.map(role => role.id), waitlistRoles.map(role => role.id)).length > 0 && daysJoined < 3) {
       throw Error(`Unable to join channel(s)`);
     }
 
