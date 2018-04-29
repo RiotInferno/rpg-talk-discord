@@ -55,11 +55,7 @@ export class ChannelManager {
   async resolveNames(channelNames: string[], guild: Guild): Promise<string[]> {
     let mappedNames = []
     for (let i = 0; i < channelNames.length; i++) {
-      if (channelNames[i] == "all") {
-        mappedNames = mappedNames.concat(allChannels(guild));
-      } else {
         mappedNames.push(channelNames[i]);
-      }
     }
 
     return _.uniq(mappedNames);
