@@ -189,6 +189,28 @@ cocCommand.hasPermission = (message: CommandMessage): boolean => {
 
 bot.registry.registerCommand(cocCommand);
 
+let piracyCommand = new Command(bot, {
+    name: 'piracy',
+    group: 'channels',
+    memberName: 'piracy',
+    description: 'Announces RPG Talk\'s stance on piracy'
+});
+
+piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err));
+    return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
+        + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
+        `However if you absolutely must have a conversation about piracy as a general topic, then do it in #outside, do not reference any specific acts of piracy or websites, organizations, individuals, etc. that promote piracy, ` +
+        `and understand that your conversation may be shut down quickly.`) as any;
+}
+
+piracyCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(piracyCommand);
+
 let channelsCommand = new Command(bot, {
     name: 'channels',
     group: 'channels',
