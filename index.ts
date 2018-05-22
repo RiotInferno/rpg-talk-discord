@@ -178,11 +178,8 @@ let cocCommand = new Command(bot, {
 });
 
 cocCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
-    try {
-        return message.reply(`Be sure to read our Code of Conduct at https://rpg-talk.com/Code%20of%20Conduct.pdf.`) as any;
-    } catch (error) {
-        console.log(error);
-    }
+    message.delete().catch(err => console.log(err));
+    return message.channel.send(`Be sure to read our Code of Conduct at https://rpg-talk.com/Code%20of%20Conduct.pdf.`) as any;
 }
 
 cocCommand.hasPermission = (message: CommandMessage): boolean => {
