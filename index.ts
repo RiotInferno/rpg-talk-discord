@@ -118,7 +118,7 @@ let queryCommand = new Command(bot, {
 
 queryCommand.run = async (message: CommandMessage, argsString: string): Promise<any> => {
     message.delete().catch(err => console.log(err))
-    
+
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
     let memberId = args[0].replace(/\D/g, '');
 
@@ -169,6 +169,28 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 }
 
 bot.registry.registerCommand(topicCommand);
+
+let cocCommand = new Command(bot, {
+    name: 'coc',
+    group: 'channels',
+    memberName: 'coc',
+    description: 'Announces the Code of Conduct'
+});
+
+cocCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    try {
+        return message.reply(`Be sure to read our Code of Conduct at https://rpg-talk.com/Code%20of%20Conduct.pdf.`) as any;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+cocCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(cocCommand);
 
 let channelsCommand = new Command(bot, {
     name: 'channels',
