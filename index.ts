@@ -211,6 +211,25 @@ piracyCommand.hasPermission = (message: CommandMessage): boolean => {
 
 bot.registry.registerCommand(piracyCommand);
 
+let outsideCommand = new Command(bot, {
+    name: 'outside',
+    group: 'channels',
+    memberName: 'outside',
+    description: 'Pushes conversation to #outside'
+});
+
+outsideCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err));
+    return message.channel.send(`This conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} is a bit too hot for this channel. Please take it #outside.`) as any;
+}
+
+outsideCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(outsideCommand);
+
 let channelsCommand = new Command(bot, {
     name: 'channels',
     group: 'channels',
