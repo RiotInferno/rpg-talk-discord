@@ -19,12 +19,12 @@ export class ChannelManager {
   }
 
   async join(channelNames: string[], member: GuildMember, guild: Guild) {
-    var roles = mapToRoles(channelNames, guild)
+    var original = mapToRoles(channelNames, guild)
+    var roles = original.filter(requested => !member.roles.exists('name', requested.name));
+    var removedRoles = original.filter(requested => member.roles.exists('name', requested.name));
 
-    for (var requested of roles) {
-      if (member.roles.exists('name', requested.name)) {
-        throw Error(`You are already in #${requested.name}`);
-      }
+    if (removedRoles.length == original.length) {
+      throw Error(`You are already in #${removedRoles.map(role => role.name).join(",")}`);
     }
 
     let waitlistRoles = mapToRoles((process.env.WAITLIST || '').split(','), guild)
@@ -52,10 +52,14 @@ export class ChannelManager {
     })
   }
 
-  async resolveNames(channelNames: string[], guild: Guild): Promise<string[]> {
+  async resolveNames(channelNames: string[], guild: Guild, member: GuildMember): Promise<string[]> {
     let mappedNames = []
     for (let i = 0; i < channelNames.length; i++) {
+      if (channelNames[i] == "all" && member.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0) {	
+        mappedNames = mappedNames.concat(allChannels(guild));	
+      } else {	
         mappedNames.push(channelNames[i]);
+      }
     }
 
     return _.uniq(mappedNames);
@@ -64,7 +68,7 @@ export class ChannelManager {
   async parseAndJoin(channelNamesString: string, member: GuildMember, guild: Guild) {
     const channelNames = this.parseChannelString(channelNamesString, guild);
 
-    await this.join(await this.resolveNames(channelNames, guild), member, guild);
+    await this.join(await this.resolveNames(channelNames, guild, member), member, guild);
   }
 
   async postJoinMessage(bot: CommandoClient, channel: TextChannel, member: GuildMember) {
@@ -134,10 +138,10 @@ export class ChannelManager {
           args = (message.channel as TextChannel).name
         }
 
-        const resolvedNames = (await this.resolveNames(this.parseChannelString(args, guild), guild))
-          .filter(name => !_.includes(blacklisted, name.toLowerCase()))
-
         const member = guild.members.find("id", message.author.id)
+
+        const resolvedNames = (await this.resolveNames(this.parseChannelString(args, guild), guild, member))
+          .filter(name => !_.includes(blacklisted, name.toLowerCase()))
 
         channels = mapToChannels(resolvedNames, guild)
           .filter(channel => member.roles.exists("name", channel.name))
