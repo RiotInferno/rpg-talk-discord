@@ -264,7 +264,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
             line += secondColumn[i] ? secondColumn[i] : ''
             line += '\n'
             
-            if ((line.length + response.length) > 2000) {
+            if ((line.length + response.length) > (2000-4)) {
                 response += '```\n';
                 message.author.sendMessage(response).catch(err => console.log(err))
                 response = '```\n';
