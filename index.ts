@@ -257,10 +257,20 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
         response += '```\n';
         _.range(firstColumn.length).forEach(i => {
-            response += firstColumn[i];
-            response += _.range(firstColumnWidth - firstColumn[i].length).map(i => ' ').join('');
-            response += secondColumn[i] ? secondColumn[i] : ''
-            response += '\n'
+            var line = '';
+            
+            line += firstColumn[i];
+            line += _.range(firstColumnWidth - firstColumn[i].length).map(i => ' ').join('');
+            line += secondColumn[i] ? secondColumn[i] : ''
+            line += '\n'
+            
+            if ((line.length + response.length) > 2000) {
+                response += '```\n';
+                message.author.sendMessage(response).catch(err => console.log(err))
+                response = '```\n';
+            }
+            
+            response += line;
         })
         response += '```\n';
 
