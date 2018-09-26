@@ -240,7 +240,7 @@ let channelsCommand = new Command(bot, {
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let response = "**Channels:**\n";
+        let response = "**Channels**\n";
 
         let allRolls = allChannels(detectGuild(bot, message));
         let halfIndex = Math.ceil(allRolls.length / 2);
@@ -264,7 +264,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
         })
         response += '```\n';
 
-        response += 'Type "/join *channel_name*" to join.'
+        response += 'Type `/join channel_name` to join.'
 
         message.author.sendMessage(response).catch(err => console.log(err))
 
