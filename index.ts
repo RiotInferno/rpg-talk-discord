@@ -253,7 +253,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
                 firstColumnWidth = role.length;
             }
         })
-        firstColumnWidth += 1;
+        firstColumnWidth += 3;
 
         response += '```\n';
         _.range(firstColumn.length).forEach(i => {
