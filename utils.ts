@@ -42,9 +42,9 @@ export function cleanupChannelName(channelName: string, guild: Guild): string {
     channelName = channelName.substr(0, channelName.length - 1)
     return guild.channels.find('id', channelName).name;
   } else if (channelName.startsWith('#')) {
-    return channelName.substr(1);
+    return channelName.substr(1).toLowerCase();
   } else {
-    return channelName;
+    return channelName.toLowerCase();
   }
 }
 
