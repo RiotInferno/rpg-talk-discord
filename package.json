@@ -9,7 +9,7 @@
     "debug": "ts-node --inspect=5858 --debug-brk --no-lazy index.ts"
   },
   "engines": {
-    "node": "8.0.0"
+    "node": "8.12.0"
   },
   "author": "",
   "license": "ISC",

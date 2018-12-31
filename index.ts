@@ -430,6 +430,7 @@ rollQuietCommand.run = async (message: CommandMessage, args: string): Promise<an
 
 bot.registry.registerCommand(rollQuietCommand);
 
+console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
     bot.guilds.forEach(guild => guild.member(bot.user).setNickname('Robot').catch(() => { }));
