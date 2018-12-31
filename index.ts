@@ -85,11 +85,11 @@ createCommand.run = async (message: CommandMessage, args: string): Promise<any> 
             id: (await guild.roles.find("name", "@everyone")).id,
             type: "role",
             deny: 3072
-        }, {
+        } as any, {
             id: role.id,
             type: "role",
             allow: 3072
-        }]);
+        } as any]);
 
         let guildMember = guild.members.find("id", message.author.id)
         await guildMember.addRole(role);
