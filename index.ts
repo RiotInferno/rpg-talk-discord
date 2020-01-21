@@ -253,7 +253,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
             if (typeof channelForRole !== 'undefined' && channelForRole.type == 'text')
             {
-              channelTopic = " - " + channelForRole.type
+              channelTopic = " - " + channelForRole.topic
             }
 
             line += allRoles[i] + channelTopic
