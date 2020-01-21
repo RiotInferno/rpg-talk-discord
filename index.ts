@@ -251,7 +251,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
             var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i])
             var channelTopic = ""
 
-            if (typeof channelForRole !== 'undefined' && channelForRole.type == text)
+            if (typeof channelForRole !== 'undefined' && channelForRole.type == 'text')
             {
               channelTopic = " - " channelForRole.type
             }
