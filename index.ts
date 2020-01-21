@@ -248,7 +248,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
         _.range(allRoles.length).forEach(i => {
             var line = '';
 
-            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i]).name;
+            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i]).topic;
 
             line += allRoles[i] + "\t-\t" + channelForRole
             //line += detectGuild(bot, message).channels.find('name', allRoles[i]).topic
