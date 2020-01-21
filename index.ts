@@ -248,10 +248,15 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
         _.range(allRoles.length).forEach(i => {
             var line = '';
 
-            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i]).topic;
+            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i])
+            var channelTopic = ""
 
-            line += allRoles[i] + "\t-\t" + channelForRole
-            //line += detectGuild(bot, message).channels.find('name', allRoles[i]).topic
+            if (typeof channelForRole !== 'undefined' && channelForRole.type == text)
+            {
+              channelTopic = " - " channelForRole.type
+            }
+
+            line += allRoles[i] + channelTopic
             line += '\n'
 
             if ((line.length + response.length) > 1500) {
