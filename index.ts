@@ -242,34 +242,20 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
     try {
         let response = "**Channels**\n";
 
-        let allRolls = allChannels(detectGuild(bot, message));
-        let halfIndex = Math.ceil(allRolls.length / 2);
-        let firstColumn = allRolls.slice(0, halfIndex);
-        let secondColumn = allRolls.slice(halfIndex);
-
-        let firstColumnWidth = 0;
-        firstColumn.forEach(role => {
-            if (role.length > firstColumnWidth) {
-                firstColumnWidth = role.length;
-            }
-        })
-        firstColumnWidth += 3;
+        let allRoles = allChannels(detectGuild(bot, message));
 
         response += '```\n';
-        _.range(firstColumn.length).forEach(i => {
+        _.range(allRoles.length).forEach(i => {
             var line = '';
-            
-            line += firstColumn[i];
-            line += _.range(firstColumnWidth - firstColumn[i].length).map(i => ' ').join('');
-            line += secondColumn[i] ? secondColumn[i] : ''
+
+            line += allRoles[i] + " - " + detectGuild(bot, message).channels.find('name', allRoles[i]).topic
             line += '\n'
-            
+
             if ((line.length + response.length) > 1500) {
                 response += '```\n';
                 message.author.sendMessage(response).catch(err => console.log(err))
                 response = '```\n';
             }
-            
             response += line;
         })
         response += '```\n';
