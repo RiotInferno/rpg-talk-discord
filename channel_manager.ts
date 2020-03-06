@@ -23,6 +23,10 @@ export class ChannelManager {
     var roles = original.filter(requested => !member.roles.exists('name', requested.name));
     var removedRoles = original.filter(requested => member.roles.exists('name', requested.name));
 
+    if (roles.length == 0) {
+      throw Error(`You are asking to join a channel does not exist or is not joinable`);
+    }
+
     if (removedRoles.length == original.length) {
       throw Error(`You are already in #${removedRoles.map(role => role.name).join(",")}`);
     }
@@ -30,7 +34,7 @@ export class ChannelManager {
     let waitlistRoles = mapToRoles((process.env.WAITLIST || '').split(','), guild)
     let daysJoined = moment().diff(moment(member.joinedAt), 'days', true)
     if (_.intersection(roles.map(role => role.id), waitlistRoles.map(role => role.id)).length > 0 && daysJoined < 7) {
-      throw Error(`Unable to join channel(s)`);
+      throw Error(`Unable to join channel(s). You are attempting to join a chanenel with a waiting period`);
     }
 
     roles = roles.filter(role => !member.roles.exists("name", role.name));
@@ -55,9 +59,9 @@ export class ChannelManager {
   async resolveNames(channelNames: string[], guild: Guild, member: GuildMember): Promise<string[]> {
     let mappedNames = []
     for (let i = 0; i < channelNames.length; i++) {
-      if (channelNames[i] == "all" && member.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0) {	
-        mappedNames = mappedNames.concat(allChannels(guild));	
-      } else {	
+      if (channelNames[i] == "all" && member.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0) {
+        mappedNames = mappedNames.concat(allChannels(guild));
+      } else {
         mappedNames.push(channelNames[i]);
       }
     }
