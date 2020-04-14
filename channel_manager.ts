@@ -6,7 +6,7 @@ import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
-  private readonly usernameRegex: RegExp = /@[^ ,.*]+/g;
+  private readonly usernameRegex: RegExp = /`@[^ ,.*]+`/g;
 
   constructor(readonly bot: CommandoClient) {
   }
@@ -87,9 +87,9 @@ export class ChannelManager {
       const users = this.parseJoinedUsers(lastMessage);
       let message;
       if (users.length > 1) {
-        message = `*\`${users.shift()}\` has joined, along with \`${users.join(", ")}\`, and \`@${member.displayName}\`*`;
+        message = `*${users.shift()} has joined, along with ${users.join(", ")}\`, and \`@${member.displayName}\`*`;
       } else {
-        message = `*\`${users.shift()}\` has joined, along with \`@${member.displayName}*\``;
+        message = `*${users.shift()} has joined, along with \`@${member.displayName}*\``;
       }
       lastMessage.edit(message).catch(console.log);
     } else {
