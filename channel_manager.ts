@@ -6,7 +6,7 @@ import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
-  private readonly usernameRegex: RegExp = /@[^ ,.*]+/g;
+  private readonly usernameRegex: RegExp = /@[^ ,.*]+[^`]?/g;
 
   constructor(readonly bot: CommandoClient) {
   }
