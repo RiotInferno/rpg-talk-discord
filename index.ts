@@ -200,7 +200,7 @@ piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> 
     message.delete().catch(err => console.log(err));
     return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
         + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
-        `However if you absolutely must have a conversation about piracy as a general topic, then do it in #outside, do not reference any specific acts of piracy or websites, organizations, individuals, etc. that promote piracy, ` +
+        `However if you absolutely must have a conversation about piracy as a general topic, do not reference any specific acts of piracy or websites, organizations, individuals, etc. that promote piracy, ` +
         `and understand that your conversation may be shut down quickly.`) as any;
 }
 
@@ -253,16 +253,14 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
             if (typeof channelForRole !== 'undefined' && channelForRole.type == 'text')
             {
-                channelTopic = " - " + ((<TextChannel>channelForRole).topic || '(no topic)');
+                channelTopic = " - `" + ((<TextChannel>channelForRole).topic || '(no topic)') + "`";
             }
 
-            line += allRoles[i] + channelTopic
+            line += "**" + allRoles[i] + "**" + channelTopic
             line += '\n'
 
             if ((line.length + response.length) > 1500) {
-                response += '```\n';
                 message.author.sendMessage(response).catch(err => console.log(err))
-                response = '```\n';
             }
             response += line;
         })
