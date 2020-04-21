@@ -244,7 +244,6 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
         let allRoles = allChannels(detectGuild(bot, message));
 
-        response += '```\n';
         _.range(allRoles.length).forEach(i => {
             var line = '';
 
@@ -264,7 +263,6 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
             }
             response += line;
         })
-        response += '```\n';
 
         response += 'Type `/join channel_name` to join.'
 
