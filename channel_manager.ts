@@ -89,11 +89,11 @@ export class ChannelManager {
       if (users.length > 1) {
         message = `\`${users.shift()} has joined, along with ${users.join(", ")}, and @${member.displayName}\``;
       } else {
-        message = `\`${users.shift()} has joined, along with @${member.displayName}*\``;
+        message = `\`${users.shift()} has joined, along with @${member.displayName}\``;
       }
       lastMessage.edit(message).catch(console.log);
     } else {
-      channel.send(`*\`@${member.displayName} has joined\`*`).catch(console.log);
+      channel.send(`\`@${member.displayName} has joined\``).catch(console.log);
     }
   }
 
