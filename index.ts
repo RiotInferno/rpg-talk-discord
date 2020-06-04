@@ -2,13 +2,14 @@
 
 require('dotenv').config()
 
-import { Message, TextChannel, Guild, GuildMember, Role } from 'discord.js'
+import { Message, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
 import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
 import { blacklisted, allChannels, detectGuild, mapToRoles } from './utils'
 import { ChannelManager } from './channel_manager'
+import { Buffer } from 'buffer'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
@@ -229,6 +230,51 @@ outsideCommand.hasPermission = (message: CommandMessage): boolean => {
 }
 
 bot.registry.registerCommand(outsideCommand);
+
+let statsCommand = new Command(bot, {
+    name: 'stats',
+    group: 'channels',
+    memberName: 'stats',
+    description: 'per-channel user/mod stats'
+});
+
+statsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    try{
+    let guild = detectGuild(bot, message);
+    let channelList = allChannels(guild);
+    let stats = guild.roles
+        .filter(r => r.name != process.env.MOD_ROLE.toLowerCase() && _.includes(channelList, r.name))
+        .map(r => ({
+             channelName: r.name,
+             memberCount: r.members.array().length,
+             modCount: r.members
+                .filter(m => _.includes(m.roles.map(role => role.name),
+                             process.env.MOD_ROLE.toLowerCase()))
+                .array()
+                .length
+        }));
+   
+    let response =  'Channel, Mod Count, User Count\n';
+    stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
+
+    message.author.send(
+        'Here are the current channel stats',
+         new Attachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
+         .catch(err => console.log(err));
+    message.delete().catch(() => { });
+    return undefined;
+    } catch (error) {
+        console.log(error);
+        return message.member.send(`Command failed: ${message.cleanContent}`) as any;
+    }
+}
+
+statsCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
+bot.registry.registerCommand(statsCommand);
 
 let channelsCommand = new Command(bot, {
     name: 'channels',
