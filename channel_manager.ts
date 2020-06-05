@@ -6,7 +6,7 @@ import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
-  private readonly usernameRegex: RegExp = /@[^ ,.*]+[^`]?/g;
+  private readonly usernameRegex: RegExp = /@[^ `,.*]+/g;
 
   constructor(readonly bot: CommandoClient) {
   }
@@ -23,10 +23,6 @@ export class ChannelManager {
     var roles = original.filter(requested => !member.roles.exists('name', requested.name));
     var removedRoles = original.filter(requested => member.roles.exists('name', requested.name));
 
-    if (roles.length == 0) {
-      throw Error(`You are asking to join a channel does not exist or is not joinable`);
-    }
-
     if (removedRoles.length == original.length) {
       throw Error(`You are already in #${removedRoles.map(role => role.name).join(",")}`);
     }
@@ -37,10 +33,17 @@ export class ChannelManager {
       throw Error(`Unable to join channel(s). You are attempting to join a chanenel with a waiting period`);
     }
 
+    roles.forEach(function(role){
+      if (member.roles.exists("name", role.name))
+      {
+        throw Error(`You are already in ${role.name}`)
+      }
+    })
+
     roles = roles.filter(role => !member.roles.exists("name", role.name));
 
     if (roles.length == 0) {
-      throw Error(`Unable to join channel(s)`);
+      throw Error(`Unable to join channel(s). Channel(s) either do not exist or aren't joinable.`);
     }
 
     await member.addRoles(roles);
@@ -82,18 +85,39 @@ export class ChannelManager {
       lastMessage = await channel.fetchMessage(channel.lastMessageID)
     } catch (error) { }
 
-    if (lastMessage && this.messageFromUser(bot.user, lastMessage) && this.isJoinedMessage(lastMessage)) {
+    let safeName = `@${member.displayName}`;
+    if (this.isUnsafeUsername(safeName))
+    {
+      safeName = `\`@${member.displayName}\``;
+    }
 
+    if (lastMessage && this.messageFromUser(bot.user, lastMessage) && this.isJoinedMessage(lastMessage)) {
       const users = this.parseJoinedUsers(lastMessage);
+      let safeUsers = [];
+      if (users != null && users != undefined && users.length > 0) {
+        users.forEach(part => {
+          if (part != null) {
+            if (this.isUnsafeUsername(part))
+            {
+              safeUsers.push(`\`${part}\``);
+            }
+            else
+            {
+              safeUsers.push(`part`);
+            }
+          }
+        });
+      }
       let message;
-      if (users.length > 1) {
-        message = `\`${users.shift()} has joined, along with ${users.join(", ")}, and @${member.displayName}\``;
+
+      if (users != null && users.length > 1) {
+        message = `${safeUsers.shift()} has joined, along with ${safeUsers.join(", ")}, and ${safeName}`;
       } else {
-        message = `\`${users.shift()} has joined, along with @${member.displayName}\``;
+        message = `${safeUsers.shift()} has joined, along with ${safeName}`;
       }
       lastMessage.edit(message).catch(console.log);
     } else {
-      channel.send(`\`@${member.displayName} has joined\``).catch(console.log);
+      channel.send(`${safeName} has joined`).catch(console.log);
     }
   }
 
@@ -107,6 +131,14 @@ export class ChannelManager {
 
   parseJoinedUsers(message: Message): string[] {
     return message.content.match(this.usernameRegex);
+  }
+
+  isUnsafeUsername(username: string): boolean {
+    if (username.includes('here') || username.includes('everyone'))
+    {
+      return true;
+    }
+    return false;
   }
 
   createJoinCommand() {

@@ -169,6 +169,11 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
     }
 }
 
+topicCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
 bot.registry.registerCommand(topicCommand);
 
 let cocCommand = new Command(bot, {
@@ -212,24 +217,24 @@ piracyCommand.hasPermission = (message: CommandMessage): boolean => {
 
 bot.registry.registerCommand(piracyCommand);
 
-let outsideCommand = new Command(bot, {
-    name: 'outside',
+let xcardCommand = new Command(bot, {
+    name: 'xcard',
     group: 'channels',
-    memberName: 'outside',
-    description: 'Pushes conversation to #outside'
+    memberName: 'xcard',
+    description: 'Requests channel conversation goes away'
 });
 
-outsideCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+xcardCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err));
-    return message.channel.send(`This conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} is a bit too hot for this channel. Please take it #outside.`) as any;
+    return message.channel.send(`Someone had requested that this conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} stops for now. Please take a break from this topic. Thank you!`) as any;
 }
 
-outsideCommand.hasPermission = (message: CommandMessage): boolean => {
+xcardCommand.hasPermission = (message: CommandMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
     return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
-bot.registry.registerCommand(outsideCommand);
+bot.registry.registerCommand(xcardCommand);
 
 let statsCommand = new Command(bot, {
     name: 'stats',
@@ -253,7 +258,7 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
                 .array()
                 .length
         }));
-   
+
     let response =  'Channel, Mod Count, User Count\n';
     stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
 
