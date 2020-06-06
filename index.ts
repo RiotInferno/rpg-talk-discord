@@ -291,6 +291,7 @@ let channelsCommand = new Command(bot, {
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
+        const defaultWidth = 25;
         var guild = detectGuild(bot, message);
         const channelCategories = guild.channels
           .filter(channel => channel.type == 'category')
@@ -319,7 +320,12 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
               {
                   channelTopic = " - `" + ((<TextChannel>channel).topic || '(no topic)') + "`";
               }
-              line += channel.name + channelTopic.substring(0, 1000);
+              var pad_length = defaultWidth - channel.name.length;
+              if (pad_length < 0 ) {
+                pad_length = 1;
+              }
+              var padding = ' '.repeat(pad_length);
+              line += channel.name + padding + channelTopic.substring(0, 1000);
               line += '\n'
 
               if ((line.length + response.length) > 1500) {
