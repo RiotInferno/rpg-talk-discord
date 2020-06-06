@@ -2,12 +2,12 @@
 
 require('dotenv').config()
 
-import { Message, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
+import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
 import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
-import { blacklisted, allChannels, detectGuild, mapToRoles } from './utils'
+import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
 
@@ -234,7 +234,7 @@ xcardCommand.hasPermission = (message: CommandMessage): boolean => {
     return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
-bot.registry.registerCommand(xcardCommand);
+//bot.registry.registerCommand(xcardCommand);
 
 let statsCommand = new Command(bot, {
     name: 'stats',
@@ -291,36 +291,40 @@ let channelsCommand = new Command(bot, {
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let response = "**Channels**\n";
+        var guild = detectGuild(bot, message);
+        const channelCategories = guild.channels
+          .filter(channel => channel.type == 'category')
+          .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()));
 
-        let allRoles = allChannels(detectGuild(bot, message));
+        let response = "**__Channels__**\n";
+        var line = '';
 
-        _.range(allRoles.length).forEach(i => {
-
-            var line = '';
-
-            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i]);
-            var channelTopic = "";
-
-            if (typeof channelForRole !== 'undefined' && channelForRole.type == 'text')
+        channelCategories.forEach(category => {
+          response += `**${category.name}**\n`;
+          (<CategoryChannel>category).children.forEach(channel => {
+            if (channelHasRole(channel.name, guild))
             {
-                channelTopic = " - `" + ((<TextChannel>channelForRole).topic || '(no topic)') + "`";
+              line = '';
+              var channelTopic = "";
+              if (typeof channel !== 'undefined' && channel.type == 'text')
+              {
+                  channelTopic = " - `" + ((<TextChannel>channel).topic || '(no topic)') + "`";
+              }
+              line += channel.name + channelTopic.substring(0, 1000);
+              line += '\n'
+
+              if ((line.length + response.length) > 1500) {
+                  message.author.sendMessage(response).catch(err => console.log(err))
+                  response = ""
+              }
+              response += line;
             }
+          } )
+          line += `\n`;
+        });
 
-            line += allRoles[i] + channelTopic
-            line += '\n'
-
-            if ((line.length + response.length) > 1500) {
-                message.author.sendMessage(response).catch(err => console.log(err))
-                response = ""
-            }
-            response += line;
-        })
-
-        response += 'Type `/join channel_name` to join.'
-
+        response += '\n**To join a channel**, type `/join channel_name` to join.'
         message.author.sendMessage(response).catch(err => console.log(err))
-
         message.delete().catch(() => { });
 
         return undefined;
