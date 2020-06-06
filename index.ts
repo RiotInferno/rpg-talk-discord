@@ -291,7 +291,8 @@ let channelsCommand = new Command(bot, {
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        const defaultWidth = 25;
+        const defaultWidth = 20;
+        const maxTopic = 1000;
         var guild = detectGuild(bot, message);
         const channelCategories = guild.channels
           .filter(channel => channel.type == 'category')
@@ -318,16 +319,15 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
               var channelTopic = "";
               if (typeof channel !== 'undefined' && channel.type == 'text')
               {
-                  channelTopic = "- `" + ((<TextChannel>channel).topic || '(no topic)') + "`";
+                  channelTopic = ((<TextChannel>channel).topic || '(no topic)');
               }
 
-              //var pad_length = defaultWidth - channel.name.length;
-              var pad_length = 1;
+              var pad_length = defaultWidth - channel.name.length;
               if (pad_length <= 0 ) {
                 pad_length = 1;
               }
               var padding = ' '.repeat(pad_length);
-              line += channel.name + padding + channelTopic.substring(0, 1000);
+              line += `\`` + channel.name + padding + `- \`` + channelTopic.substring(0, maxTopic);
               line += '\n'
 
               if ((line.length + response.length) > 1500) {
