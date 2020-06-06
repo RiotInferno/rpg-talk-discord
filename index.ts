@@ -340,7 +340,8 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
           line += `\n`;
         });
 
-        response += '\n**To join a channel**, type `/join channel_name` to join.'
+        response += '\n**To join a channel**, type `/join channel_name`.'
+        response += '\n**To leave a channel**, type `/leave channel_name`.'
         message.author.sendMessage(response).catch(err => console.log(err))
         message.delete().catch(() => { });
 
