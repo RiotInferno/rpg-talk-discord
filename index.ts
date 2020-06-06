@@ -318,10 +318,12 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
               var channelTopic = "";
               if (typeof channel !== 'undefined' && channel.type == 'text')
               {
-                  channelTopic = " - `" + ((<TextChannel>channel).topic || '(no topic)') + "`";
+                  channelTopic = "- `" + ((<TextChannel>channel).topic || '(no topic)') + "`";
               }
-              var pad_length = defaultWidth - channel.name.length;
-              if (pad_length < 0 ) {
+
+              //var pad_length = defaultWidth - channel.name.length;
+              var pad_length = 1;
+              if (pad_length <= 0 ) {
                 pad_length = 1;
               }
               var padding = ' '.repeat(pad_length);
