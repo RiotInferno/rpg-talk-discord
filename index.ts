@@ -294,7 +294,16 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
         var guild = detectGuild(bot, message);
         const channelCategories = guild.channels
           .filter(channel => channel.type == 'category')
-          .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()));
+          .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+          .sort((a, b) => {
+            if (a.position > b.position ) {
+              return 1;
+            }
+            else if ( a.position < b.position ) {
+              return -1;
+            }
+            return 0;
+          });
 
         let response = "**__Channels__**\n";
         var line = '';
