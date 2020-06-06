@@ -312,12 +312,26 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
         channelCategories.forEach(category => {
           response += `**${category.name}**\n`;
-          (<CategoryChannel>category).children.forEach(channel => {
+
+          var children = (<CategoryChannel>category).children
+            .filter(channel => channel.type == 'text')
+            .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+            .sort((a, b) => {
+              if (a.position > b.position ) {
+                return 1;
+              }
+              else if ( a.position < b.position ) {
+                return -1;
+              }
+              return 0;
+            });
+
+          children.forEach(channel => {
             if (channelHasRole(channel.name, guild))
             {
               line = '';
               var channelTopic = "";
-              if (typeof channel !== 'undefined' && channel.type == 'text')
+              if (typeof channel !== 'undefined')
               {
                   channelTopic = ((<TextChannel>channel).topic || '(no topic)');
               }
