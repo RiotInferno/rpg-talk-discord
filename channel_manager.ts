@@ -103,7 +103,7 @@ export class ChannelManager {
             }
             else
             {
-              safeUsers.push(`part`);
+              safeUsers.push(`${part}`);
             }
           }
         });
