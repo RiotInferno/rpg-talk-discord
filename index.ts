@@ -248,13 +248,13 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
              channelName: r.name,
              memberCount: r.members.array().length,
              modCount: r.members
-                .filter(m => _.includes(m.roles.map(role => role.name),
+                .filter(m => _.includes(m.roles.map(role => role.name.toLowerCase()),
                              process.env.MOD_ROLE.toLowerCase()))
                 .array()
                 .length
         }));
    
-    let response =  'Channel, Mod Count, User Count\n';
+    let response =  'Channel, Member Count, Moderator Count\n';
     stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
 
     message.author.send(
