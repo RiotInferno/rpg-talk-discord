@@ -2,12 +2,12 @@
 
 require('dotenv').config()
 
-import { Message, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
+import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
 import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
-import { blacklisted, allChannels, detectGuild, mapToRoles } from './utils'
+import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
 
@@ -169,6 +169,11 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
     }
 }
 
+topicCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+}
+
 bot.registry.registerCommand(topicCommand);
 
 let cocCommand = new Command(bot, {
@@ -212,24 +217,24 @@ piracyCommand.hasPermission = (message: CommandMessage): boolean => {
 
 bot.registry.registerCommand(piracyCommand);
 
-let outsideCommand = new Command(bot, {
-    name: 'outside',
+let xcardCommand = new Command(bot, {
+    name: 'xcard',
     group: 'channels',
-    memberName: 'outside',
-    description: 'Pushes conversation to #outside'
+    memberName: 'xcard',
+    description: 'Requests channel conversation goes away'
 });
 
-outsideCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+xcardCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err));
-    return message.channel.send(`This conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} is a bit too hot for this channel. Please take it #outside.`) as any;
+    return message.channel.send(`Someone had requested that this conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} stops for now. Please take a break from this topic. Thank you!`) as any;
 }
 
-outsideCommand.hasPermission = (message: CommandMessage): boolean => {
+xcardCommand.hasPermission = (message: CommandMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
     return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
-bot.registry.registerCommand(outsideCommand);
+//bot.registry.registerCommand(xcardCommand);
 
 let statsCommand = new Command(bot, {
     name: 'stats',
@@ -286,36 +291,72 @@ let channelsCommand = new Command(bot, {
 
 channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let response = "**Channels**\n";
+        const defaultWidth = 20;
+        const maxTopic = 1000;
+        var guild = detectGuild(bot, message);
+        const channelCategories = guild.channels
+          .filter(channel => channel.type == 'category')
+          .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+          .sort((a, b) => {
+            if (a.position > b.position ) {
+              return 1;
+            }
+            else if ( a.position < b.position ) {
+              return -1;
+            }
+            return 0;
+          });
 
-        let allRoles = allChannels(detectGuild(bot, message));
+        let response = "**__Channels__**\n";
+        var line = '';
 
-        _.range(allRoles.length).forEach(i => {
+        channelCategories.forEach(category => {
+          response += `**${category.name}**\n`;
 
-            var line = '';
+          var children = (<CategoryChannel>category).children
+            .filter(channel => channel.type == 'text')
+            .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+            .sort((a, b) => {
+              if (a.position > b.position ) {
+                return 1;
+              }
+              else if ( a.position < b.position ) {
+                return -1;
+              }
+              return 0;
+            });
 
-            var channelForRole = detectGuild(bot, message).channels.find('name', allRoles[i]);
-            var channelTopic = "";
-
-            if (typeof channelForRole !== 'undefined' && channelForRole.type == 'text')
+          children.forEach(channel => {
+            if (channelHasRole(channel.name, guild))
             {
-                channelTopic = " - `" + ((<TextChannel>channelForRole).topic || '(no topic)') + "`";
+              line = '';
+              var channelTopic = "";
+              if (typeof channel !== 'undefined')
+              {
+                  channelTopic = ((<TextChannel>channel).topic || '(no topic)');
+              }
+
+              var pad_length = defaultWidth - channel.name.length;
+              if (pad_length <= 0 ) {
+                pad_length = 1;
+              }
+              var padding = ' '.repeat(pad_length);
+              line += `\`` + channel.name + padding + `- \`` + channelTopic.substring(0, maxTopic);
+              line += '\n'
+
+              if ((line.length + response.length) > 1500) {
+                  message.author.sendMessage(response).catch(err => console.log(err))
+                  response = ""
+              }
+              response += line;
             }
+          } )
+          line += `\n`;
+        });
 
-            line += allRoles[i] + channelTopic
-            line += '\n'
-
-            if ((line.length + response.length) > 1500) {
-                message.author.sendMessage(response).catch(err => console.log(err))
-                response = ""
-            }
-            response += line;
-        })
-
-        response += 'Type `/join channel_name` to join.'
-
+        response += '\n**To join a channel**, type `/join channel_name`.'
+        response += '\n**To leave a channel**, type `/leave channel_name`.'
         message.author.sendMessage(response).catch(err => console.log(err))
-
         message.delete().catch(() => { });
 
         return undefined;

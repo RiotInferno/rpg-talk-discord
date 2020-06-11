@@ -23,6 +23,15 @@ export function mapToRoles(channelNames: string[], guild: Guild): Role[] {
     .filter(role => !_.includes(blacklisted, role.name.toLowerCase()));
 }
 
+export function channelHasRole(channelName: string, guild: Guild): boolean {
+  let role = guild.roles.find('name', channelName);
+  if (role != null && !blacklisted.includes(role.name.toLowerCase()))
+  {
+    return true;
+  }
+  return false;
+}
+
 export function allChannels(guild: Guild): string[] {
   const channels = guild.channels
     .filter(channel => channel.type == 'text')
@@ -54,4 +63,3 @@ export function mapToChannels(channelNames: string[], guild: Guild): TextChannel
     .filter(channel => channel)
     .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase())) as TextChannel[];
 }
-
