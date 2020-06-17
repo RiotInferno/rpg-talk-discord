@@ -10,6 +10,19 @@
             "request": "attach",
             "port": 5858,
             "timeout": 9999999
+        },
+        {
+            "name": "Debug Bot",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "runtimeArgs": [
+                "-r",
+                "ts-node/register"
+            ],
+            "args": [
+                "${workspaceRoot}/index.ts"
+            ]
         }
     ]
 }
