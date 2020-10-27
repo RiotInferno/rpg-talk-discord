@@ -258,7 +258,7 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
                 .array()
                 .length
         }));
-   
+
     let response =  'Channel, Member Count, Moderator Count\n';
     stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
 
@@ -512,7 +512,7 @@ bot.registry.registerCommand(rollQuietCommand);
 console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
-    bot.guilds.forEach(guild => guild.member(bot.user).setNickname('Robot').catch(() => { }));
+    bot.guilds.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot').catch(() => { }));
     bot.user.setPresence({
         status: "online",
         game: { name: "/help and /channels" }
