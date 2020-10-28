@@ -4,10 +4,11 @@ import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Messag
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
-import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
+import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole, createChannel, initializeBotAudit } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
 import { ArgumentCollectorResult, Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
+import { initializeEvents } from './events'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
@@ -69,30 +70,7 @@ createCommand.run = async (message: CommandoMessage, args: string): Promise<any>
     try {
         let name = args.trim().toLowerCase();
         let guild = detectGuild(bot, message);
-
-        if (!/^[a-z0-9_]+$/.test(name)) {
-            throw Error('Bad new channel name: ' + name);
-        }
-
-        if (await guild.roles.cache.find(role => role.name === name)) {
-            throw Error('Channel already exists: ' + name);
-        }
-
-        let role = await guild.roles.create({data:{ name }});
-        let channel = await guild.channels.create(name, 
-            {
-                type: "text",
-                permissionOverwrites: [{
-                id: (await guild.roles.cache.find(role => role.name === "@everyone")).id,
-                type: "role",
-                deny: 3072
-                } as any, {
-                    id: role.id,
-                    type: "role",
-                    allow: 3072
-                } as any]
-            })
-
+        var role = await createChannel(bot, name, guild);
         let guildMember = guild.members.cache.find(member => member.id === message.author.id)
         await guildMember.roles.add(role);
 
@@ -544,3 +522,5 @@ bot.on('guildMemberAdd', async (member) => {
             .catch(err => console.log(err))
     } catch (error) { }
 });
+
+initializeEvents(bot);
