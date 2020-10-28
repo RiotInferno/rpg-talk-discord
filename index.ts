@@ -2,19 +2,18 @@
 
 require('dotenv').config()
 
-import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
-import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
+import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment } from 'discord.js'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
 import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
+import { ArgumentCollectorResult, Command, CommandoClient, CommandMessage } from 'discord.js-commando'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
-    commandPrefix: '/',
-    unknownCommandResponse: false
+    commandPrefix: '/'
 });
 
 bot.login(process.env.TOKEN);
@@ -77,23 +76,27 @@ createCommand.run = async (message: CommandMessage, args: string): Promise<any> 
             throw Error('Bad new channel name: ' + name);
         }
 
-        if (await guild.roles.find("name", name)) {
+        if (await guild.roles.cache.find(role => role.name === name)) {
             throw Error('Channel already exists: ' + name);
         }
 
-        let role = await guild.createRole({ name });
-        let channel = await guild.createChannel(name, "text", [{
-            id: (await guild.roles.find("name", "@everyone")).id,
-            type: "role",
-            deny: 3072
-        } as any, {
-            id: role.id,
-            type: "role",
-            allow: 3072
-        } as any]);
+        let role = await guild.roles.create({data:{ name }});
+        let channel = await guild.channels.create(name, 
+            {
+                type: "text",
+                permissionOverwrites: [{
+                id: (await guild.roles.cache.find(role => role.name === "@everyone")).id,
+                type: "role",
+                deny: 3072
+                } as any, {
+                    id: role.id,
+                    type: "role",
+                    allow: 3072
+                } as any]
+            })
 
-        let guildMember = guild.members.find("id", message.author.id)
-        await guildMember.addRole(role);
+        let guildMember = guild.members.cache.find(member => member.id === message.author.id)
+        await guildMember.roles.add(role);
 
         return message.reply(`#${args} has been created`) as any;
     } catch (error) {
@@ -104,8 +107,8 @@ createCommand.run = async (message: CommandMessage, args: string): Promise<any> 
 }
 
 createCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(createCommand);
@@ -124,27 +127,27 @@ queryCommand.run = async (message: CommandMessage, argsString: string): Promise<
     let memberId = args[0].replace(/\D/g, '');
 
     let guild = detectGuild(bot, message);
-    let queryingMember = guild.members.find("id", message.author.id)
-    let foundMember = guild.members.find(member => member.id == memberId);
+    let queryingMember = guild.members.cache.find(member => member.id === message.author.id)
+    let foundMember = guild.members.cache.find(member => member.id == memberId);
 
     if (!foundMember) {
         let plainName = args[0].replace('@', '');
-        foundMember = guild.members.find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
+        foundMember = guild.members.cache.find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
     }
 
     if (foundMember) {
         let date = moment(foundMember.joinedAt).tz('America/New_York')
         let dateString = date.format('MMMM Do YYYY, h:mm:ss a')
         let dateTz = date.zoneName()
-        queryingMember.sendMessage(`${foundMember.displayName} joined on ${dateString} ${dateTz}.`)
+        queryingMember.send(`${foundMember.displayName} joined on ${dateString} ${dateTz}.`)
     } else {
-        queryingMember.sendMessage(`Unable to query ${foundMember.displayName}.`)
+        queryingMember.send(`Unable to query ${foundMember.displayName}.`)
     }
 }
 
 queryCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(queryCommand);
@@ -158,7 +161,7 @@ let topicCommand = new Command(bot, {
 
 topicCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        detectGuild(bot, message).channels.find('id', message.channel.id).setTopic(args);
+        detectGuild(bot, message).channels.cache.find(channel => channel.id === message.channel.id).setTopic(args);
         message.delete().catch(err => console.log(err))
 
         return message.reply(`set new channel topic`) as any;
@@ -170,8 +173,8 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 }
 
 topicCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(topicCommand);
@@ -189,8 +192,8 @@ cocCommand.run = async (message: CommandMessage, args: string): Promise<any> => 
 }
 
 cocCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(cocCommand);
@@ -211,8 +214,8 @@ piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> 
 }
 
 piracyCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(piracyCommand);
@@ -230,8 +233,8 @@ xcardCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 }
 
 xcardCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 //bot.registry.registerCommand(xcardCommand);
@@ -247,13 +250,13 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
     try{
     let guild = detectGuild(bot, message);
     let channelList = allChannels(guild);
-    let stats = guild.roles
+    let stats = guild.roles.cache
         .filter(r => r.name != process.env.MOD_ROLE.toLowerCase() && _.includes(channelList, r.name))
         .map(r => ({
              channelName: r.name,
              memberCount: r.members.array().length,
              modCount: r.members
-                .filter(m => _.includes(m.roles.map(role => role.name.toLowerCase()),
+                .filter(m => _.includes(m.roles.cache.map(role => role.name.toLowerCase()),
                              process.env.MOD_ROLE.toLowerCase()))
                 .array()
                 .length
@@ -264,7 +267,7 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 
     message.author.send(
         'Here are the current channel stats',
-         new Attachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
+         new MessageAttachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
          .catch(err => console.log(err));
     message.delete().catch(() => { });
     return undefined;
@@ -275,8 +278,8 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
 }
 
 statsCommand.hasPermission = (message: CommandMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
-    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(statsCommand);
@@ -294,7 +297,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
         const defaultWidth = 20;
         const maxTopic = 1000;
         var guild = detectGuild(bot, message);
-        const channelCategories = guild.channels
+        const channelCategories = guild.channels.cache
           .filter(channel => channel.type == 'category')
           .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
           .sort((a, b) => {
@@ -345,7 +348,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
               line += '\n'
 
               if ((line.length + response.length) > 1500) {
-                  message.author.sendMessage(response).catch(err => console.log(err))
+                  message.author.send(response).catch(err => console.log(err))
                   response = ""
               }
               response += line;
@@ -356,7 +359,7 @@ channelsCommand.run = async (message: CommandMessage, args: string): Promise<any
 
         response += '\n**To join a channel**, type `/join channel_name`.'
         response += '\n**To leave a channel**, type `/leave channel_name`.'
-        message.author.sendMessage(response).catch(err => console.log(err))
+        message.author.send(response).catch(err => console.log(err))
         message.delete().catch(() => { });
 
         return undefined;
@@ -437,7 +440,7 @@ let rollCommand = new Command(bot, {
 
 rollCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let member = detectGuild(bot, message).members.find("id", message.author.id)
+        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
         let result = roll(args, member);
 
         let response = result.message + '\n\n' + result.fields
@@ -463,7 +466,7 @@ let rCommand = new Command(bot, {
 
 rCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let member = detectGuild(bot, message).members.find("id", message.author.id)
+        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
         let result = roll(args, member);
 
         let response = result.message + ', ' + result.fields
@@ -488,11 +491,11 @@ let rollQuietCommand = new Command(bot, {
     aliases: ['rq']
 });
 
-rollQuietCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+rollQuietCommand.run = async (message: CommandMessage, args: object | string | string[], fromPattern: boolean, result?: ArgumentCollectorResult): Promise<Message | Message[]> => {
     message.delete().catch(err => console.log(err))
-
+    args = args as string;
     try {
-        let member = detectGuild(bot, message).members.find("id", message.author.id)
+        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
         let result = roll(args, member);
 
         let response = result.message.replace(/\*/g, '') + ', ' + result.fields
@@ -512,11 +515,11 @@ bot.registry.registerCommand(rollQuietCommand);
 console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
-    bot.guilds.forEach(guild => guild.member(bot.user).setNickname('Robot').catch(() => { }));
+    bot.guilds.cache.forEach(guild => guild.member(bot.user).setNickname('Robot').catch(() => { }));
     bot.user.setPresence({
         status: "online",
-        game: { name: "/help and /channels" }
-    })
+        activity: { name: "/help and /channels" }
+    });
 });
 
 bot.on('guildMemberAdd', async (member) => {
@@ -528,14 +531,14 @@ bot.on('guildMemberAdd', async (member) => {
 
     try {
         let defaultRoles = defaultRoleNames
-            .map(name => member.guild.roles.find('name', name))
+            .map(name => member.guild.roles.cache.find(role => role.name ===  name))
             .filter(role => role)
 
-        member.addRoles(defaultRoles).catch(err => console.log(err));
+        member.roles.add(defaultRoles).catch(err => console.log(err));
     } catch (error) { }
 
     try {
-        member.sendMessage(`Thanks for joining **${member.guild.name}**.\n\n` +
+        member.send(`Thanks for joining **${member.guild.name}**.\n\n` +
             `There are many more channels beyond the ${defaultRoleNames.length + 1} default ones. ` +
             `There are **${allChannels(member.guild).length}** in total!\n\n` +
             `Discover them all by entering the **/channels** command here.\n\n` +

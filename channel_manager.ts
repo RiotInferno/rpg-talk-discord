@@ -3,7 +3,6 @@ import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild } from './utils'
-import 'helpers/extensions.ts'
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
