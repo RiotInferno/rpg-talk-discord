@@ -1,4 +1,4 @@
-import { CommandMessage, CommandoClient } from 'discord.js-commando'
+import { CommandoMessage, CommandoClient } from 'discord.js-commando'
 import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js';
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
@@ -34,13 +34,13 @@ export class ChannelManager {
     }
 
     roles.forEach(function(role){
-      if (member.roles.cache.some(role => role.name === role.name))
+      if (member.roles.cache.some(memberRole => memberRole.name === role.name))
       {
         throw Error(`You are already in ${role.name}`)
       }
     })
 
-    roles = roles.filter(role => !member.roles.cache.some(role => role.name === role.name));
+    roles = roles.filter(role => !member.roles.cache.some(memberRole => memberRole.name === role.name));
 
     if (roles.length == 0) {
       throw Error(`Unable to join channel(s). Channel(s) either do not exist or aren't joinable.`);
@@ -142,7 +142,7 @@ export class ChannelManager {
   }
 
   createJoinCommand() {
-    return async (message: CommandMessage, channelName: string): Promise<any> => {
+    return async (message: CommandoMessage, channelName: string): Promise<any> => {
       message.delete().catch(() => { });
 
       try {
@@ -162,7 +162,7 @@ export class ChannelManager {
   }
 
   createLeaveCommand() {
-    return async (message: CommandMessage, args: string): Promise<any> => {
+    return async (message: CommandoMessage, args: string): Promise<any> => {
       message.delete().catch(console.log);
 
       try {
@@ -183,7 +183,7 @@ export class ChannelManager {
           .filter(channel => member.roles.cache.some(role => role.name === channel.name))
 
         roles = mapToRoles(resolvedNames, guild)
-          .filter(role => member.roles.cache.some(role => role.name === role.name))
+          .filter(role => member.roles.cache.some(memberRole => memberRole.name === role.name))
 
         await member.roles.remove(roles);
 
@@ -198,7 +198,7 @@ export class ChannelManager {
   }
 
   createInviteCommand() {
-    return async (message: CommandMessage, argsString: string): Promise<any> => {
+    return async (message: CommandoMessage, argsString: string): Promise<any> => {
       message.delete().catch(console.log);
 
       try {

@@ -1,4 +1,4 @@
-import { CommandoClient, CommandMessage } from 'discord.js-commando'
+import { CommandoClient, CommandoMessage } from 'discord.js-commando'
 import { TextChannel, Guild, Role } from 'discord.js';
 import * as _ from 'lodash'
 
@@ -8,7 +8,7 @@ export const blacklisted = (process.env.BLACKLIST || '')
     .map(channel => channel.toLowerCase())
     .filter(channel => channel.length > 0);
 
-export function detectGuild(bot: CommandoClient, message: CommandMessage): Guild {
+export function detectGuild(bot: CommandoClient, message: CommandoMessage): Guild {
   if (message.guild) {
     return message.guild;
   } else {

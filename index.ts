@@ -1,5 +1,3 @@
-/// <reference path="./commando.d.ts"/>
-
 require('dotenv').config()
 
 import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment } from 'discord.js'
@@ -9,7 +7,7 @@ import Dice from './dice'
 import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
-import { ArgumentCollectorResult, Command, CommandoClient, CommandMessage } from 'discord.js-commando'
+import { ArgumentCollectorResult, Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
@@ -67,7 +65,7 @@ let createCommand = new Command(bot, {
     description: 'Creates a new channel.'
 });
 
-createCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+createCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         let name = args.trim().toLowerCase();
         let guild = detectGuild(bot, message);
@@ -106,7 +104,7 @@ createCommand.run = async (message: CommandMessage, args: string): Promise<any> 
     }
 }
 
-createCommand.hasPermission = (message: CommandMessage): boolean => {
+createCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -120,7 +118,7 @@ let queryCommand = new Command(bot, {
     description: 'Query a user.'
 });
 
-queryCommand.run = async (message: CommandMessage, argsString: string): Promise<any> => {
+queryCommand.run = async (message: CommandoMessage, argsString: string): Promise<any> => {
     message.delete().catch(err => console.log(err))
 
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
@@ -145,7 +143,7 @@ queryCommand.run = async (message: CommandMessage, argsString: string): Promise<
     }
 }
 
-queryCommand.hasPermission = (message: CommandMessage): boolean => {
+queryCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -159,7 +157,7 @@ let topicCommand = new Command(bot, {
     description: 'Set channel topic.'
 });
 
-topicCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+topicCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         detectGuild(bot, message).channels.cache.find(channel => channel.id === message.channel.id).setTopic(args);
         message.delete().catch(err => console.log(err))
@@ -172,7 +170,7 @@ topicCommand.run = async (message: CommandMessage, args: string): Promise<any> =
     }
 }
 
-topicCommand.hasPermission = (message: CommandMessage): boolean => {
+topicCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -186,12 +184,12 @@ let cocCommand = new Command(bot, {
     description: 'Announces the Code of Conduct'
 });
 
-cocCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+cocCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err));
     return message.channel.send(`Be sure to read our Code of Conduct at https://rpg-talk.com/code_of_conduct.pdf.`) as any;
 }
 
-cocCommand.hasPermission = (message: CommandMessage): boolean => {
+cocCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -205,7 +203,7 @@ let piracyCommand = new Command(bot, {
     description: 'Announces RPG Talk\'s stance on piracy'
 });
 
-piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+piracyCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err));
     return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
         + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
@@ -213,7 +211,7 @@ piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> 
         `and understand that your conversation may be shut down quickly.`) as any;
 }
 
-piracyCommand.hasPermission = (message: CommandMessage): boolean => {
+piracyCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -227,12 +225,12 @@ let xcardCommand = new Command(bot, {
     description: 'Requests channel conversation goes away'
 });
 
-xcardCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+xcardCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err));
     return message.channel.send(`Someone had requested that this conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} stops for now. Please take a break from this topic. Thank you!`) as any;
 }
 
-xcardCommand.hasPermission = (message: CommandMessage): boolean => {
+xcardCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -246,7 +244,7 @@ let statsCommand = new Command(bot, {
     description: 'per-channel user/mod stats'
 });
 
-statsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try{
     let guild = detectGuild(bot, message);
     let channelList = allChannels(guild);
@@ -277,7 +275,7 @@ statsCommand.run = async (message: CommandMessage, args: string): Promise<any> =
     }
 }
 
-statsCommand.hasPermission = (message: CommandMessage): boolean => {
+statsCommand.hasPermission = (message: CommandoMessage): boolean => {
     let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
     return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
@@ -292,7 +290,7 @@ let channelsCommand = new Command(bot, {
     aliases: ['channel']
 });
 
-channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+channelsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         const defaultWidth = 20;
         const maxTopic = 1000;
@@ -438,7 +436,7 @@ let rollCommand = new Command(bot, {
     description: 'Rolls all the dice!'
 });
 
-rollCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+rollCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
         let result = roll(args, member);
@@ -464,7 +462,7 @@ let rCommand = new Command(bot, {
     description: 'Rolls all the dice compactly!',
 });
 
-rCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+rCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
         let result = roll(args, member);
@@ -491,7 +489,7 @@ let rollQuietCommand = new Command(bot, {
     aliases: ['rq']
 });
 
-rollQuietCommand.run = async (message: CommandMessage, args: object | string | string[], fromPattern: boolean, result?: ArgumentCollectorResult): Promise<Message | Message[]> => {
+rollQuietCommand.run = async (message: CommandoMessage, args: object | string | string[], fromPattern: boolean, result?: ArgumentCollectorResult): Promise<Message | Message[]> => {
     message.delete().catch(err => console.log(err))
     args = args as string;
     try {
