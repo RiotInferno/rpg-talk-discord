@@ -119,7 +119,7 @@ let queryCommand = new Command(bot, {
 });
 
 queryCommand.run = async (message: CommandoMessage, argsString: string): Promise<any> => {
-    message.delete().catch(err => console.log(err))
+    message.delete().catch(() => { });
 
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
     let memberId = args[0].replace(/\D/g, '');
@@ -160,7 +160,7 @@ let topicCommand = new Command(bot, {
 topicCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     try {
         detectGuild(bot, message).channels.cache.find(channel => channel.id === message.channel.id).setTopic(args);
-        message.delete().catch(err => console.log(err))
+        message.delete().catch(() => { });
 
         return message.reply(`set new channel topic`) as any;
     } catch (error) {
@@ -185,7 +185,7 @@ let cocCommand = new Command(bot, {
 });
 
 cocCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(err => console.log(err));
+    message.delete().catch(() => { });
     return message.channel.send(`Be sure to read our Code of Conduct at https://rpg-talk.com/code_of_conduct.pdf.`) as any;
 }
 
@@ -204,7 +204,7 @@ let piracyCommand = new Command(bot, {
 });
 
 piracyCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(err => console.log(err));
+    message.delete().catch(() => { });
     return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
         + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
         `However if you absolutely must have a conversation about piracy as a general topic, do not reference any specific acts of piracy or websites, organizations, individuals, etc. that promote piracy, ` +
@@ -226,7 +226,7 @@ let xcardCommand = new Command(bot, {
 });
 
 xcardCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(err => console.log(err));
+    message.delete().catch(() => { });
     return message.channel.send(`Someone had requested that this conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} stops for now. Please take a break from this topic. Thank you!`) as any;
 }
 
@@ -490,7 +490,7 @@ let rollQuietCommand = new Command(bot, {
 });
 
 rollQuietCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(err => console.log(err))
+    message.delete().catch(() => { });
     args = args as string;
     try {
         let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)

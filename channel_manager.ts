@@ -170,7 +170,7 @@ export class ChannelManager {
 
   createLeaveCommand() {
     return async (message: CommandoMessage, args: string): Promise<any> => {
-      message.delete().catch(console.log);
+      message.delete().catch(() => { });
 
       try {
         const guild = detectGuild(this.bot, message)
@@ -206,7 +206,7 @@ export class ChannelManager {
 
   createInviteCommand() {
     return async (message: CommandoMessage, argsString: string): Promise<any> => {
-      message.delete().catch(console.log);
+      message.delete().catch(() => { });
 
       try {
         let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
