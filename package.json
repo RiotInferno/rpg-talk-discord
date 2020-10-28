@@ -6,7 +6,8 @@
   "scripts": {
     "start": "ts-node index.ts",
     "oauth": "ts-node oauth.ts",
-    "debug": "ts-node --inspect=5858 --debug-brk --no-lazy index.ts"
+    "debug": "ts-node --inspect=5858 --debug-brk --no-lazy index.ts",
+    "build": "tsc index.ts" 
   },
   "engines": {
     "node": "14.15.0"
