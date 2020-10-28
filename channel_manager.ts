@@ -3,6 +3,7 @@ import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild } from './utils'
+import 'helpers/extensions.ts'
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
@@ -20,8 +21,8 @@ export class ChannelManager {
 
   async join(channelNames: string[], member: GuildMember, guild: Guild) {
     var original = mapToRoles(channelNames, guild)
-    var roles = original.filter(requested => !member.roles.exists('name', requested.name));
-    var removedRoles = original.filter(requested => member.roles.exists('name', requested.name));
+    var roles = original.filter(requested => !member.roles.cache.some(role => role.name === requested.name));
+    var removedRoles = original.filter(requested => member.roles.cache.some(role => role.name === requested.name));
 
     if (removedRoles.length == original.length) {
       throw Error(`You are already in #${removedRoles.map(role => role.name).join(",")}`);
@@ -34,19 +35,19 @@ export class ChannelManager {
     }
 
     roles.forEach(function(role){
-      if (member.roles.exists("name", role.name))
+      if (member.roles.cache.some(role => role.name === role.name))
       {
         throw Error(`You are already in ${role.name}`)
       }
     })
 
-    roles = roles.filter(role => !member.roles.exists("name", role.name));
+    roles = roles.filter(role => !member.roles.cache.some(role => role.name === role.name));
 
     if (roles.length == 0) {
       throw Error(`Unable to join channel(s). Channel(s) either do not exist or aren't joinable.`);
     }
 
-    await member.addRoles(roles);
+    await member.roles.add(roles);
 
     roles.forEach((role) => {
       const channel = guild.channels.find(
