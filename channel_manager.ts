@@ -23,6 +23,13 @@ export class ChannelManager {
     var roles = original.filter(requested => !member.roles.exists('name', requested.name));
     var removedRoles = original.filter(requested => member.roles.exists('name', requested.name));
 
+    channelNames.forEach(function(joinChannel){
+      if (!original.find(channel => channel.name == joinChannel))
+      {
+        throw Error(`You are attempting to join a channel that does not exist: ${joinChannel}. Please consult the lists from the \`channels\` command for a full list.`);
+      }
+    })
+
     if (removedRoles.length == original.length) {
       throw Error(`You are already in #${removedRoles.map(role => role.name).join(",")}`);
     }
@@ -30,7 +37,7 @@ export class ChannelManager {
     let waitlistRoles = mapToRoles((process.env.WAITLIST || '').split(','), guild)
     let daysJoined = moment().diff(moment(member.joinedAt), 'days', true)
     if (_.intersection(roles.map(role => role.id), waitlistRoles.map(role => role.id)).length > 0 && daysJoined < 7) {
-      throw Error(`Unable to join channel(s). You are attempting to join a chanenel with a waiting period`);
+      throw Error(`Unable to join channel(s). You are attempting to join a channel with a waiting period`);
     }
 
     roles.forEach(function(role){
