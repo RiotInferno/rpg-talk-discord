@@ -489,7 +489,7 @@ let rollQuietCommand = new Command(bot, {
     aliases: ['rq']
 });
 
-rollQuietCommand.run = async (message: CommandoMessage, args: object | string | string[], fromPattern: boolean, result?: ArgumentCollectorResult): Promise<Message | Message[]> => {
+rollQuietCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
     message.delete().catch(err => console.log(err))
     args = args as string;
     try {
