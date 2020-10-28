@@ -50,7 +50,7 @@ export class ChannelManager {
     await member.roles.add(roles);
 
     roles.forEach((role) => {
-      const channel = guild.channels.find(
+      const channel = guild.channels.cache.find(
         channel => channel.name == role.name && channel.type == 'text'
       ) as TextChannel;
 
@@ -63,7 +63,7 @@ export class ChannelManager {
   async resolveNames(channelNames: string[], guild: Guild, member: GuildMember): Promise<string[]> {
     let mappedNames = []
     for (let i = 0; i < channelNames.length; i++) {
-      if (channelNames[i] == "all" && member.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0) {
+      if (channelNames[i] == "all" && member.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0) {
         mappedNames = mappedNames.concat(allChannels(guild));
       } else {
         mappedNames.push(channelNames[i]);
@@ -83,7 +83,7 @@ export class ChannelManager {
     let lastMessage;
 
     try {
-      lastMessage = await channel.fetchMessage(channel.lastMessageID)
+      lastMessage = await channel.messages.fetch(channel.lastMessageID)
     } catch (error) { }
 
     let safeName = `@${member.displayName}`;
@@ -148,7 +148,7 @@ export class ChannelManager {
 
       try {
         const guild = detectGuild(this.bot, message);
-        const member = guild.members.find("id", message.author.id)
+        const member = guild.members.cache.find(member => member.id === message.author.id)
         await this.parseAndJoin(channelName, member, guild);
 
         if (message.channel.type == "dm") {
@@ -175,18 +175,18 @@ export class ChannelManager {
           args = (message.channel as TextChannel).name
         }
 
-        const member = guild.members.find("id", message.author.id)
+        const member = guild.members.cache.find(member => member.id === message.author.id)
 
         const resolvedNames = (await this.resolveNames(this.parseChannelString(args, guild), guild, member))
           .filter(name => !_.includes(blacklisted, name.toLowerCase()))
 
         channels = mapToChannels(resolvedNames, guild)
-          .filter(channel => member.roles.exists("name", channel.name))
+          .filter(channel => member.roles.cache.some(role => role.name === channel.name))
 
         roles = mapToRoles(resolvedNames, guild)
-          .filter(role => member.roles.exists("name", role.name))
+          .filter(role => member.roles.cache.some(role => role.name === role.name))
 
-        await member.removeRoles(roles);
+        await member.roles.remove(roles);
 
         console.log("Leaving successful")
         return undefined;
@@ -213,12 +213,12 @@ export class ChannelManager {
           channelNames.push((message.channel as TextChannel).name)
         }
 
-        let invitedMember = guild.members
+        let invitedMember = guild.members.cache
           .find(member => member.id == id);
 
         if (!invitedMember) {
           let plainName = args[0].replace('@', '');
-          invitedMember = guild.members
+          invitedMember = guild.members.cache
             .find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
         }
 
