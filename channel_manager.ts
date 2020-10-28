@@ -26,7 +26,7 @@ export class ChannelManager {
     channelNames.forEach(function(joinChannel){
       if (!original.find(channel => channel.name == joinChannel))
       {
-        throw Error(`You are attempting to join a channel that does not exist: ${joinChannel}. Please consult the lists from the \`channels\` command for a full list.`);
+        throw Error(`You are attempting to join a channel that does not exist: ${joinChannel}. Please consult the lists from the \`channels\` command for a full list`);
       }
     })
 
