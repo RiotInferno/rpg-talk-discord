@@ -1,17 +1,20 @@
+/// <reference path="./commando.d.ts"/>
+
 require('dotenv').config()
 
-import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment } from 'discord.js'
+import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Attachment } from 'discord.js'
+import { CommandoClient, Command, CommandMessage } from 'discord.js-commando'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
 import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
-import { ArgumentCollectorResult, Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
-    commandPrefix: '/'
+    commandPrefix: '/',
+    unknownCommandResponse: false
 });
 
 bot.login(process.env.TOKEN);
@@ -65,7 +68,7 @@ let createCommand = new Command(bot, {
     description: 'Creates a new channel.'
 });
 
-createCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+createCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
         let name = args.trim().toLowerCase();
         let guild = detectGuild(bot, message);
@@ -74,27 +77,23 @@ createCommand.run = async (message: CommandoMessage, args: string): Promise<any>
             throw Error('Bad new channel name: ' + name);
         }
 
-        if (await guild.roles.cache.find(role => role.name === name)) {
+        if (await guild.roles.find("name", name)) {
             throw Error('Channel already exists: ' + name);
         }
 
-        let role = await guild.roles.create({data:{ name }});
-        let channel = await guild.channels.create(name, 
-            {
-                type: "text",
-                permissionOverwrites: [{
-                id: (await guild.roles.cache.find(role => role.name === "@everyone")).id,
-                type: "role",
-                deny: 3072
-                } as any, {
-                    id: role.id,
-                    type: "role",
-                    allow: 3072
-                } as any]
-            })
+        let role = await guild.createRole({ name });
+        let channel = await guild.createChannel(name, "text", [{
+            id: (await guild.roles.find("name", "@everyone")).id,
+            type: "role",
+            deny: 3072
+        } as any, {
+            id: role.id,
+            type: "role",
+            allow: 3072
+        } as any]);
 
-        let guildMember = guild.members.cache.find(member => member.id === message.author.id)
-        await guildMember.roles.add(role);
+        let guildMember = guild.members.find("id", message.author.id)
+        await guildMember.addRole(role);
 
         return message.reply(`#${args} has been created`) as any;
     } catch (error) {
@@ -104,9 +103,9 @@ createCommand.run = async (message: CommandoMessage, args: string): Promise<any>
     }
 }
 
-createCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+createCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(createCommand);
@@ -118,34 +117,34 @@ let queryCommand = new Command(bot, {
     description: 'Query a user.'
 });
 
-queryCommand.run = async (message: CommandoMessage, argsString: string): Promise<any> => {
-    message.delete().catch(() => { });
+queryCommand.run = async (message: CommandMessage, argsString: string): Promise<any> => {
+    message.delete().catch(err => console.log(err))
 
     let args = argsString.split(" ").map(part => part.trim()).filter(part => part.length > 0);
     let memberId = args[0].replace(/\D/g, '');
 
     let guild = detectGuild(bot, message);
-    let queryingMember = guild.members.cache.find(member => member.id === message.author.id)
-    let foundMember = guild.members.cache.find(member => member.id == memberId);
+    let queryingMember = guild.members.find("id", message.author.id)
+    let foundMember = guild.members.find(member => member.id == memberId);
 
     if (!foundMember) {
         let plainName = args[0].replace('@', '');
-        foundMember = guild.members.cache.find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
+        foundMember = guild.members.find(member => member.displayName.toLowerCase() == plainName.toLowerCase());
     }
 
     if (foundMember) {
         let date = moment(foundMember.joinedAt).tz('America/New_York')
         let dateString = date.format('MMMM Do YYYY, h:mm:ss a')
         let dateTz = date.zoneName()
-        queryingMember.send(`${foundMember.displayName} joined on ${dateString} ${dateTz}.`)
+        queryingMember.sendMessage(`${foundMember.displayName} joined on ${dateString} ${dateTz}.`)
     } else {
-        queryingMember.send(`Unable to query ${foundMember.displayName}.`)
+        queryingMember.sendMessage(`Unable to query ${foundMember.displayName}.`)
     }
 }
 
-queryCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+queryCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(queryCommand);
@@ -157,10 +156,10 @@ let topicCommand = new Command(bot, {
     description: 'Set channel topic.'
 });
 
-topicCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+topicCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        detectGuild(bot, message).channels.cache.find(channel => channel.id === message.channel.id).setTopic(args);
-        message.delete().catch(() => { });
+        detectGuild(bot, message).channels.find('id', message.channel.id).setTopic(args);
+        message.delete().catch(err => console.log(err))
 
         return message.reply(`set new channel topic`) as any;
     } catch (error) {
@@ -170,9 +169,9 @@ topicCommand.run = async (message: CommandoMessage, args: string): Promise<any> 
     }
 }
 
-topicCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+topicCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(topicCommand);
@@ -184,14 +183,14 @@ let cocCommand = new Command(bot, {
     description: 'Announces the Code of Conduct'
 });
 
-cocCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(() => { });
+cocCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err));
     return message.channel.send(`Be sure to read our Code of Conduct at https://rpg-talk.com/code_of_conduct.pdf.`) as any;
 }
 
-cocCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+cocCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(cocCommand);
@@ -203,17 +202,17 @@ let piracyCommand = new Command(bot, {
     description: 'Announces RPG Talk\'s stance on piracy'
 });
 
-piracyCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(() => { });
+piracyCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err));
     return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
         + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
         `However if you absolutely must have a conversation about piracy as a general topic, do not reference any specific acts of piracy or websites, organizations, individuals, etc. that promote piracy, ` +
         `and understand that your conversation may be shut down quickly.`) as any;
 }
 
-piracyCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+piracyCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(piracyCommand);
@@ -225,14 +224,14 @@ let xcardCommand = new Command(bot, {
     description: 'Requests channel conversation goes away'
 });
 
-xcardCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(() => { });
+xcardCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err));
     return message.channel.send(`Someone had requested that this conversation ${_.get(args, 'length', 0) > 0 ? `about ${args}` : ''} stops for now. Please take a break from this topic. Thank you!`) as any;
 }
 
-xcardCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+xcardCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 //bot.registry.registerCommand(xcardCommand);
@@ -244,17 +243,17 @@ let statsCommand = new Command(bot, {
     description: 'per-channel user/mod stats'
 });
 
-statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+statsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try{
     let guild = detectGuild(bot, message);
     let channelList = allChannels(guild);
-    let stats = guild.roles.cache
+    let stats = guild.roles
         .filter(r => r.name != process.env.MOD_ROLE.toLowerCase() && _.includes(channelList, r.name))
         .map(r => ({
              channelName: r.name,
              memberCount: r.members.array().length,
              modCount: r.members
-                .filter(m => _.includes(m.roles.cache.map(role => role.name.toLowerCase()),
+                .filter(m => _.includes(m.roles.map(role => role.name.toLowerCase()),
                              process.env.MOD_ROLE.toLowerCase()))
                 .array()
                 .length
@@ -265,7 +264,7 @@ statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> 
 
     message.author.send(
         'Here are the current channel stats',
-         new MessageAttachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
+         new Attachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
          .catch(err => console.log(err));
     message.delete().catch(() => { });
     return undefined;
@@ -275,9 +274,9 @@ statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> 
     }
 }
 
-statsCommand.hasPermission = (message: CommandoMessage): boolean => {
-    let guildMember = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
-    return guildMember.roles.cache.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
+statsCommand.hasPermission = (message: CommandMessage): boolean => {
+    let guildMember = detectGuild(bot, message).members.find("id", message.author.id)
+    return guildMember.roles.filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase()).size > 0
 }
 
 bot.registry.registerCommand(statsCommand);
@@ -290,12 +289,12 @@ let channelsCommand = new Command(bot, {
     aliases: ['channel']
 });
 
-channelsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+channelsCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
         const defaultWidth = 20;
         const maxTopic = 1000;
         var guild = detectGuild(bot, message);
-        const channelCategories = guild.channels.cache
+        const channelCategories = guild.channels
           .filter(channel => channel.type == 'category')
           .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
           .sort((a, b) => {
@@ -346,7 +345,7 @@ channelsCommand.run = async (message: CommandoMessage, args: string): Promise<an
               line += '\n'
 
               if ((line.length + response.length) > 1500) {
-                  message.author.send(response).catch(err => console.log(err))
+                  message.author.sendMessage(response).catch(err => console.log(err))
                   response = ""
               }
               response += line;
@@ -357,7 +356,7 @@ channelsCommand.run = async (message: CommandoMessage, args: string): Promise<an
 
         response += '\n**To join a channel**, type `/join channel_name`.'
         response += '\n**To leave a channel**, type `/leave channel_name`.'
-        message.author.send(response).catch(err => console.log(err))
+        message.author.sendMessage(response).catch(err => console.log(err))
         message.delete().catch(() => { });
 
         return undefined;
@@ -436,9 +435,9 @@ let rollCommand = new Command(bot, {
     description: 'Rolls all the dice!'
 });
 
-rollCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+rollCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+        let member = detectGuild(bot, message).members.find("id", message.author.id)
         let result = roll(args, member);
 
         let response = result.message + '\n\n' + result.fields
@@ -462,9 +461,9 @@ let rCommand = new Command(bot, {
     description: 'Rolls all the dice compactly!',
 });
 
-rCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+rCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
     try {
-        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+        let member = detectGuild(bot, message).members.find("id", message.author.id)
         let result = roll(args, member);
 
         let response = result.message + ', ' + result.fields
@@ -489,11 +488,11 @@ let rollQuietCommand = new Command(bot, {
     aliases: ['rq']
 });
 
-rollQuietCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    message.delete().catch(() => { });
-    args = args as string;
+rollQuietCommand.run = async (message: CommandMessage, args: string): Promise<any> => {
+    message.delete().catch(err => console.log(err))
+
     try {
-        let member = detectGuild(bot, message).members.cache.find(member => member.id === message.author.id)
+        let member = detectGuild(bot, message).members.find("id", message.author.id)
         let result = roll(args, member);
 
         let response = result.message.replace(/\*/g, '') + ', ' + result.fields
@@ -513,11 +512,11 @@ bot.registry.registerCommand(rollQuietCommand);
 console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
-    bot.guilds.cache.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot').catch(() => { }));
+    bot.guilds.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot').catch(() => { }));
     bot.user.setPresence({
         status: "online",
-        activity: { name: "/help and /channels" }
-    });
+        game: { name: "/help and /channels" }
+    })
 });
 
 bot.on('guildMemberAdd', async (member) => {
@@ -529,14 +528,14 @@ bot.on('guildMemberAdd', async (member) => {
 
     try {
         let defaultRoles = defaultRoleNames
-            .map(name => member.guild.roles.cache.find(role => role.name ===  name))
+            .map(name => member.guild.roles.find('name', name))
             .filter(role => role)
 
-        member.roles.add(defaultRoles).catch(err => console.log(err));
+        member.addRoles(defaultRoles).catch(err => console.log(err));
     } catch (error) { }
 
     try {
-        member.send(`Thanks for joining **${member.guild.name}**.\n\n` +
+        member.sendMessage(`Thanks for joining **${member.guild.name}**.\n\n` +
             `There are many more channels beyond the ${defaultRoleNames.length + 1} default ones. ` +
             `There are **${allChannels(member.guild).length}** in total!\n\n` +
             `Discover them all by entering the **/channels** command here.\n\n` +
