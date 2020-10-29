@@ -95,9 +95,17 @@ export async function createChannel(bot: CommandoClient, name: string, guild: Gu
     throw Error('Channel already exists: ' + name);
   }
 
-  let role = await guild.roles.create({ data: { name } });
+  var role: Role = null;
+
   if (roleOverride) {
     role = guild.roles.cache.find(role => role.name == roleOverride)
+  } else {
+    role = await guild.roles.create({ data: { name } });
+  }
+  
+  if(!role){
+    bot.LogError(`Could not find role ${roleOverride ? roleOverride : name}. Did not create channel ${name}`);
+    return;
   }
 
   let channel = await guild.channels.create(name,
