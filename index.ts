@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment, Intents } from 'discord.js'
+import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment } from 'discord.js'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
@@ -12,14 +12,7 @@ import { initializeEvents } from './events'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
-    commandPrefix: '/',
-    ws: {
-        intents: new Intents(Intents.FLAGS.GUILDS |
-                             Intents.FLAGS.GUILD_MEMBERS |
-                             Intents.FLAGS.GUILD_BANS |
-                             Intents.FLAGS.GUILD_MESSAGES | 
-                             Intents.FLAGS.DIRECT_MESSAGES) 
-    }
+    commandPrefix: '/'
 });
 
 bot.login(process.env.TOKEN);
