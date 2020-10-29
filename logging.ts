@@ -4,13 +4,21 @@ import { CommandoClient } from "discord.js-commando";
 import moment = require("moment");
 
 enum LogLevel {
-    INFO = "Info",
-    DEBUG = "Debug",
-    ERROR = "Error"
+    TRACE,
+    DEBUG,
+    INFO,
+    ERROR
 };
+
+let logLabels = {};
+logLabels[LogLevel.TRACE] = "Trace";
+logLabels[LogLevel.DEBUG] = "Debug";
+logLabels[LogLevel.INFO] = "Info";
+logLabels[LogLevel.ERROR] = "Error";
 
 declare module 'discord.js-commando' {
     interface CommandoClient {
+        LogTrace(message: string);
         LogInfo(message: string);
         LogDebug(message: string);
         LogError(message: string);
@@ -31,6 +39,9 @@ CommandoClient.prototype.LogError = function(message: string) {
 CommandoClient.prototype.LogAnyError = function(data: any) {
     (this as CommandoClient).LogMessage(formatJsonMessage(data), LogLevel.ERROR);
 }
+CommandoClient.prototype.LogTrace = function(message: string) {
+    (this as CommandoClient).LogMessage(message, LogLevel.TRACE);
+}
 
 CommandoClient.prototype.LogMessage = function(message: string, level: LogLevel)
 {
@@ -39,13 +50,17 @@ CommandoClient.prototype.LogMessage = function(message: string, level: LogLevel)
     - Tracking - User entered this command.
     - Errors - Bot Errors, Unknown Commands.
   */
+    if(level < LogLevel[process.env.LOG_LEVEL]) {
+        //black-hole unwanted messages. 
+        return;
+    }
     const bot = (this as CommandoClient);
 
     var channel = bot.guilds.cache.first()
         .channels.cache
         .filter(channel => channel.name.toLowerCase() == process.env.AUDIT_CHANNEL && channel.isText())
         .first();
-
+    
     try {
         if (channel) {
             // Using a type guard to narrow down the correct type, see https://stackoverflow.com/a/53608094
@@ -64,8 +79,8 @@ CommandoClient.prototype.LogMessage = function(message: string, level: LogLevel)
     }
 }
 
-function getFullLogMessage(level: string, message: string): string {
-    var log = `[${moment().toISOString()}][${level}]: ${message}`
+function getFullLogMessage(level: LogLevel, message: string): string {
+    var log = `[${moment().toISOString()}][${logLabels[level]}]: ${message}`
     if (level == LogLevel.ERROR) {
         log += `\n**stack trace:** \n>>> ${new Error().stack}`;
     }
