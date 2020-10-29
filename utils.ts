@@ -5,6 +5,7 @@ import './logging';
 
 export const blacklisted = (process.env.BLACKLIST || '')
     .split(',')
+    .concat([process.env.AUDIT_CHANNEL])
     .map(channel => channel.trim())
     .map(channel => channel.toLowerCase())
     .filter(channel => channel.length > 0);
@@ -77,14 +78,7 @@ export async function initializeBotAudit(bot: CommandoClient)
         .includes(auditChannel);
 
       if (!alreadyMade) {
-        var role = await createChannel(bot, auditChannel, guild);
-        // add the new role to each mod.
-        guild.roles.cache
-          .filter(role => role.name.toLocaleLowerCase() == process.env.MOD_ROLE.toLowerCase())
-          .flatMap(role => role.members)
-          .forEach(member => {
-            member.roles.add(role);
-          });
+        var role = await createChannel(bot, auditChannel, guild, process.env.MOD_ROLE);
       }
     }
   } catch (error) {
@@ -92,16 +86,20 @@ export async function initializeBotAudit(bot: CommandoClient)
   }
 }
 
-export async function createChannel(bot: CommandoClient, name: string, guild: Guild): Promise<Role> {
+export async function createChannel(bot: CommandoClient, name: string, guild: Guild, roleOverride?: string): Promise<Role> {
   if (!/^[a-z0-9_]+$/.test(name)) {
     throw Error('Bad new channel name: ' + name);
   }
 
-  if (await guild.roles.cache.find(role => role.name === name)) {
+  if (!roleOverride && await guild.roles.cache.find(role => role.name === name)) {
     throw Error('Channel already exists: ' + name);
   }
 
   let role = await guild.roles.create({ data: { name } });
+  if (roleOverride) {
+    role = guild.roles.cache.find(role => role.name == roleOverride)
+  }
+
   let channel = await guild.channels.create(name,
     {
       type: "text",
