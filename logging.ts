@@ -45,21 +45,38 @@ CommandoClient.prototype.LogMessage = function(message: string, level: LogLevel)
         .channels.cache
         .filter(channel => channel.name.toLowerCase() == process.env.AUDIT_CHANNEL && channel.isText())
         .first();
-    if (channel) {
-        // Using a type guard to narrow down the correct type, see https://stackoverflow.com/a/53608094
-        if (!((channel): channel is TextChannel => channel.type === 'text')(channel)) return;
-        channel.send(`[${moment().toISOString()}][${level}]: ${message}`);
-        if(level == LogLevel.ERROR){
-            channel.send(`**stack trace:** \n>>> ${new Error().stack}`);
+
+    try {
+        if (channel) {
+            // Using a type guard to narrow down the correct type, see https://stackoverflow.com/a/53608094
+            if (((channel): channel is TextChannel => channel.type === 'text')(channel)) {
+                channel.send(getFullLogMessage(level, message));
+                return;
+            };
         }
+
+        // if the channel doesn't exist or isn't writable, log to console.
+        console.log(getFullLogMessage(level, message));
+    } catch (error) {
+        // don't lose any errors. explicitly log to console in the event of a logging error.
+        console.log(`Error while writing to log: ${formatJsonMessage(error)}`);
+        console.log(getFullLogMessage(level, message));
     }
+}
+
+function getFullLogMessage(level: string, message: string): string {
+    var log = `[${moment().toISOString()}][${level}]: ${message}`
+    if (level == LogLevel.ERROR) {
+        log += `\n**stack trace:** \n>>> ${new Error().stack}`;
+    }
+    return log;
 }
 
 export const getLogMessage = (message: CommandoMessage): string =>
     (`${message.author.tag}: ${message.cleanContent}`);
 
-export const formatJsonMessage = (data: object): string => 
-    "```json\n" + JSON.stringify(data, replaceErrors, 3) + "```"; 
+export const formatJsonMessage = (data: object): string =>
+    "```json\n" + JSON.stringify(data, replaceErrors, 3) + "```";
 
 function replaceErrors(key, value) {
     if (value instanceof Error) {
