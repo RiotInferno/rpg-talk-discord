@@ -98,7 +98,7 @@ export async function createChannel(bot: CommandoClient, name: string, guild: Gu
   var role: Role = null;
 
   if (roleOverride) {
-    role = guild.roles.cache.find(role => role.name == roleOverride)
+    role = guild.roles.cache.find(role => role.name.toLowerCase() == roleOverride.toLowerCase())
   } else {
     role = await guild.roles.create({ data: { name } });
   }
