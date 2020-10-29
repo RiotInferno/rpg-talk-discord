@@ -1,7 +1,8 @@
 import { Client, CommandoClient, CommandoMessage } from 'discord.js-commando'
-import { TextChannel, Guild, Role } from 'discord.js';
+import { TextChannel, Guild, Role, GuildManager, GuildMember } from 'discord.js';
 import * as _ from 'lodash'
 import './logging';
+import { formatJsonMessage } from './logging';
 
 export const blacklisted = (process.env.BLACKLIST || '')
     .split(',')
@@ -122,4 +123,8 @@ export async function createChannel(bot: CommandoClient, name: string, guild: Gu
       } as any]
     });
   return role;
+}
+
+export function LogUserRoles(bot: CommandoClient, member: GuildMember, dataTag: string) {
+    bot.LogTrace(`[${dataTag}] roles for user ${member.user.tag} ${formatJsonMessage(member.roles.cache.map(role => role.name))}`);
 }

@@ -2,8 +2,9 @@ import { CommandoMessage, CommandoClient } from 'discord.js-commando'
 import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js';
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
-import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild } from './utils'
+import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild, LogUserRoles } from './utils'
 import './logging';
+import { formatJsonMessage } from './logging';
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
@@ -20,6 +21,7 @@ export class ChannelManager {
   }
 
   async join(channelNames: string[], member: GuildMember, guild: Guild) {
+    LogUserRoles(this.bot, member, 'pre-join');
     var original = mapToRoles(channelNames, guild)
     var roles = original.filter(requested => !member.roles.cache.some(role => role.name === requested.name));
     var removedRoles = original.filter(requested => member.roles.cache.some(role => role.name === requested.name));
@@ -54,7 +56,8 @@ export class ChannelManager {
       throw Error(`Unable to join channel(s). Channel(s) either do not exist or aren't joinable.`);
     }
 
-    await member.roles.add(roles);
+    this.bot.LogTrace(`preparing to add roles: ${formatJsonMessage(roles)}`);
+    member = await member.roles.add(roles);
 
     roles.forEach((role) => {
       const channel = guild.channels.cache.find(
@@ -65,6 +68,7 @@ export class ChannelManager {
         this.postJoinMessage(this.bot, channel, member)
       }
     })
+    LogUserRoles(this.bot, member, 'join successful');
   }
 
   async resolveNames(channelNames: string[], guild: Guild, member: GuildMember): Promise<string[]> {
@@ -187,7 +191,8 @@ export class ChannelManager {
           args = (message.channel as TextChannel).name
         }
 
-        const member = guild.members.cache.find(member => member.id === message.author.id)
+        var member = guild.members.cache.find(member => member.id === message.author.id)
+        LogUserRoles(this.bot, member, 'pre-leave');
 
         const resolvedNames = (await this.resolveNames(this.parseChannelString(args, guild), guild, member))
           .filter(name => !_.includes(blacklisted, name.toLowerCase()))
@@ -198,9 +203,11 @@ export class ChannelManager {
         roles = mapToRoles(resolvedNames, guild)
           .filter(role => member.roles.cache.some(memberRole => memberRole.name === role.name))
 
-        await member.roles.remove(roles);
+        this.bot.LogTrace(`preparing to remove roles: ${formatJsonMessage(roles)}`);
+        member = await member.roles.remove(roles);
 
         console.log("Leaving successful")
+      LogUserRoles(this.bot, member, 'leave successful');
         return undefined;
       } catch (error) {
         message.client.LogAnyError(error);
