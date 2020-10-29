@@ -1,9 +1,11 @@
-import { CommandoClient, CommandoMessage } from 'discord.js-commando'
+import { Client, CommandoClient, CommandoMessage } from 'discord.js-commando'
 import { TextChannel, Guild, Role } from 'discord.js';
 import * as _ from 'lodash'
+import './logging';
 
 export const blacklisted = (process.env.BLACKLIST || '')
     .split(',')
+    .concat([process.env.AUDIT_CHANNEL])
     .map(channel => channel.trim())
     .map(channel => channel.toLowerCase())
     .filter(channel => channel.length > 0);
@@ -62,4 +64,54 @@ export function mapToChannels(channelNames: string[], guild: Guild): TextChannel
     .map(name => guild.channels.cache.find(channel => channel.name === name))
     .filter(channel => channel)
     .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase())) as TextChannel[];
+}
+
+export async function initializeBotAudit(bot: CommandoClient)
+{
+  try {
+    if (process.env.AUDIT_CHANNEL) {
+      const auditChannel = process.env.AUDIT_CHANNEL;
+      var guild = bot.guilds.cache.first();
+      var alreadyMade = guild.channels.cache
+        .filter(channel => channel.isText())
+        .map(channel => channel.name.toLowerCase())
+        .includes(auditChannel);
+
+      if (!alreadyMade) {
+        var role = await createChannel(bot, auditChannel, guild, process.env.MOD_ROLE);
+      }
+    }
+  } catch (error) {
+    bot.LogAnyError(error);
+  }
+}
+
+export async function createChannel(bot: CommandoClient, name: string, guild: Guild, roleOverride?: string): Promise<Role> {
+  if (!/^[a-z0-9_]+$/.test(name)) {
+    throw Error('Bad new channel name: ' + name);
+  }
+
+  if (!roleOverride && await guild.roles.cache.find(role => role.name === name)) {
+    throw Error('Channel already exists: ' + name);
+  }
+
+  let role = await guild.roles.create({ data: { name } });
+  if (roleOverride) {
+    role = guild.roles.cache.find(role => role.name == roleOverride)
+  }
+
+  let channel = await guild.channels.create(name,
+    {
+      type: "text",
+      permissionOverwrites: [{
+        id: (await guild.roles.cache.find(role => role.name === "@everyone")).id,
+        type: "role",
+        deny: 3072
+      } as any, {
+        id: role.id,
+        type: "role",
+        allow: 3072
+      } as any]
+    });
+  return role;
 }

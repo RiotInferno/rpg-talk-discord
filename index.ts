@@ -4,10 +4,11 @@ import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, Messag
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
-import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole } from './utils'
+import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole, createChannel, initializeBotAudit } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
 import { ArgumentCollectorResult, Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
+import { initializeEvents } from './events'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
@@ -69,37 +70,13 @@ createCommand.run = async (message: CommandoMessage, args: string): Promise<any>
     try {
         let name = args.trim().toLowerCase();
         let guild = detectGuild(bot, message);
-
-        if (!/^[a-z0-9_]+$/.test(name)) {
-            throw Error('Bad new channel name: ' + name);
-        }
-
-        if (await guild.roles.cache.find(role => role.name === name)) {
-            throw Error('Channel already exists: ' + name);
-        }
-
-        let role = await guild.roles.create({data:{ name }});
-        let channel = await guild.channels.create(name, 
-            {
-                type: "text",
-                permissionOverwrites: [{
-                id: (await guild.roles.cache.find(role => role.name === "@everyone")).id,
-                type: "role",
-                deny: 3072
-                } as any, {
-                    id: role.id,
-                    type: "role",
-                    allow: 3072
-                } as any]
-            })
-
+        var role = await createChannel(bot, name, guild);
         let guildMember = guild.members.cache.find(member => member.id === message.author.id)
         await guildMember.roles.add(role);
 
         return message.reply(`#${args} has been created`) as any;
     } catch (error) {
-        console.log(error);
-
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -164,7 +141,7 @@ topicCommand.run = async (message: CommandoMessage, args: string): Promise<any> 
 
         return message.reply(`set new channel topic`) as any;
     } catch (error) {
-        console.log(error);
+        bot.LogAnyError(error);
 
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
@@ -266,11 +243,11 @@ statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> 
     message.author.send(
         'Here are the current channel stats',
          new MessageAttachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
-         .catch(err => console.log(err));
+         .catch(err => bot.LogAnyError(err));
     message.delete().catch(() => { });
     return undefined;
     } catch (error) {
-        console.log(error);
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -346,7 +323,8 @@ channelsCommand.run = async (message: CommandoMessage, args: string): Promise<an
               line += '\n'
 
               if ((line.length + response.length) > 1500) {
-                  message.author.send(response).catch(err => console.log(err))
+                  message.author.send(response)
+                    .catch(err => bot.LogAnyError(err))
                   response = ""
               }
               response += line;
@@ -357,13 +335,13 @@ channelsCommand.run = async (message: CommandoMessage, args: string): Promise<an
 
         response += '\n**To join a channel**, type `/join channel_name`.'
         response += '\n**To leave a channel**, type `/leave channel_name`.'
-        message.author.send(response).catch(err => console.log(err))
+        message.author.send(response)
+            .catch(err => bot.LogAnyError(err))
         message.delete().catch(() => { });
 
         return undefined;
     } catch (error) {
-        console.log(error);
-
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -447,8 +425,7 @@ rollCommand.run = async (message: CommandoMessage, args: string): Promise<any> =
 
         return message.channel.send(response.trim());
     } catch (error) {
-        console.log(error);
-
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -473,8 +450,7 @@ rCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
 
         return message.channel.send(response.trim());
     } catch (error) {
-        console.log(error);
-
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -502,8 +478,7 @@ rollQuietCommand.run = async (message: CommandoMessage, args: string): Promise<a
 
         return member.send(response.trim());
     } catch (error) {
-        console.log(error);
-
+        bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
     }
 }
@@ -513,7 +488,8 @@ bot.registry.registerCommand(rollQuietCommand);
 console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
-    bot.guilds.cache.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot').catch(() => { }));
+    bot.guilds.cache.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot')
+         .catch(err => bot.LogAnyError(err)));
     bot.user.setPresence({
         status: "online",
         activity: { name: "/help and /channels" }
@@ -528,12 +504,18 @@ bot.on('guildMemberAdd', async (member) => {
         .filter(name => name.length > 0)
 
     try {
+        bot.LogInfo(`${member.user.tag} has joined the server at server time ${member.joinedAt.toISOString()}`)
         let defaultRoles = defaultRoleNames
             .map(name => member.guild.roles.cache.find(role => role.name ===  name))
             .filter(role => role)
 
-        member.roles.add(defaultRoles).catch(err => console.log(err));
-    } catch (error) { }
+        member.roles.add(defaultRoles)
+         .catch(err => bot.LogAnyError(err));
+        
+        bot.LogInfo(`${member.user.tag} should have the default roles of ${defaultRoleNames}`);
+    } catch (error) {
+        bot.LogAnyError(error);
+    }
 
     try {
         member.send(`Thanks for joining **${member.guild.name}**.\n\n` +
@@ -541,6 +523,10 @@ bot.on('guildMemberAdd', async (member) => {
             `There are **${allChannels(member.guild).length}** in total!\n\n` +
             `Discover them all by entering the **/channels** command here.\n\n` +
             `Be sure to review the Code of Conduct in our #rules channels`)
-            .catch(err => console.log(err))
-    } catch (error) { }
+            .catch(err => bot.LogAnyError(err));
+    } catch (error) {
+        bot.LogAnyError(error);
+    }
 });
+
+initializeEvents(bot);
