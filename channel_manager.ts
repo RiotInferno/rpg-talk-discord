@@ -3,7 +3,6 @@ import { TextChannel, Message, Guild, GuildMember, Role, User } from 'discord.js
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import { mapToChannels, blacklisted, cleanupChannelName, allChannels, mapToRoles, detectGuild } from './utils'
-import './logging';
 
 export class ChannelManager {
   private readonly joinMessageRegex: RegExp = /has joined/;
@@ -91,9 +90,7 @@ export class ChannelManager {
 
     try {
       lastMessage = await channel.messages.fetch(channel.lastMessageID)
-    } catch (error) {
-      bot.LogAnyError(error);
-    }
+    } catch (error) { }
 
     let safeName = `@${member.displayName}`;
     if (this.isUnsafeUsername(safeName))
@@ -125,11 +122,9 @@ export class ChannelManager {
       } else {
         message = `${safeUsers.shift()} has joined, along with ${safeName}`;
       }
-      lastMessage.edit(message)
-        .catch(bot.LogAnyError);
+      lastMessage.edit(message).catch(console.log);
     } else {
-      channel.send(`${safeName} has joined`)
-        .catch(bot.LogAnyError);
+      channel.send(`${safeName} has joined`).catch(console.log);
     }
   }
 
@@ -168,7 +163,6 @@ export class ChannelManager {
           return undefined;
         }
       } catch (error) {
-        message.client.LogAnyError(error);
         return message.reply(`"${message.cleanContent}" failed: ${error}.`) as any;
       }
     }
@@ -203,7 +197,7 @@ export class ChannelManager {
         console.log("Leaving successful")
         return undefined;
       } catch (error) {
-        message.client.LogAnyError(error);
+        console.log(error);
 
         return message.reply(`Leave command failed: ${message.cleanContent}`) as any;
       }
@@ -238,7 +232,7 @@ export class ChannelManager {
 
         return undefined;
       } catch (error) {
-        message.client.LogAnyError(error);
+        console.log(error);
 
         return message.reply(`Invite command failed: ${message.cleanContent}`) as any;
       }
