@@ -128,3 +128,45 @@ export async function createChannel(bot: CommandoClient, name: string, guild: Gu
 export function LogUserRoles(bot: CommandoClient, member: GuildMember, dataTag: string) {
     bot.LogTrace(`[${dataTag}] roles for user ${member.user.tag} ${formatJsonMessage(member.roles.cache.map(role => role.name))}`);
 }
+
+export async function IsMemberPending(api: any, guild: Guild, member: GuildMember) {
+  return IsMemberIdPending(api, guild.id, member.id);
+}
+
+export async function IsMemberIdPending(api: any, guildId: string, memberId: string) {
+    var data = await api.guilds(guildId).members(memberId).get();
+    return data.pending === true;
+}
+
+export function InitialGreeting(bot: CommandoClient, member: GuildMember){
+    let defaultRoleNames = (process.env.DEFAULT || '')
+        .split(',')
+        .filter(name => name)
+        .map(name => name.trim())
+        .filter(name => name.length > 0)
+
+    try {
+        bot.LogInfo(`${member.user.tag} has joined the server at server time ${member.joinedAt.toISOString()}`)
+        let defaultRoles = defaultRoleNames
+            .map(name => member.guild.roles.cache.find(role => role.name ===  name))
+            .filter(role => role)
+
+        member.roles.add(defaultRoles)
+         .catch(err => bot.LogAnyError(err));
+        
+        bot.LogInfo(`${member.user.tag} should have the default roles of ${defaultRoleNames}`);
+    } catch (error) {
+        bot.LogAnyError(error);
+    }
+
+    try {
+        member.send(`Thanks for joining **${member.guild.name}**.\n\n` +
+            `There are many more channels beyond the ${defaultRoleNames.length + 1} default ones. ` +
+            `There are **${allChannels(member.guild).length}** in total!\n\n` +
+            `Discover them all by entering the **/channels** command here.\n\n` +
+            `Be sure to review the Code of Conduct in our #rules channels`)
+            .catch(err => bot.LogAnyError(err));
+    } catch (error) {
+        bot.LogAnyError(error);
+    }
+}

@@ -5,6 +5,7 @@
         "allowJs": true,
         "lib": [
           "es2015"  
-        ]
+        ],
+        "target": "ES6"
     }
 }

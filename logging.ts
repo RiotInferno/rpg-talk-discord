@@ -1,3 +1,4 @@
+import { Client } from "discord.js";
 import { TextChannel } from "discord.js";
 import { CommandoMessage } from "discord.js-commando";
 import { CommandoClient } from "discord.js-commando";
@@ -24,7 +25,13 @@ declare module 'discord.js-commando' {
         LogError(message: string);
         LogAnyError(data: any);
         LogMessage(message: string, level: LogLevel);
-    } 
+    }
+}
+declare module 'discord.js' { 
+    interface Client {
+        LogAnyError(data: any);
+        LogMessage(message: string, level: LogLevel);
+    }
 }
 
 CommandoClient.prototype.LogInfo = function(message: string) { 
@@ -43,7 +50,14 @@ CommandoClient.prototype.LogTrace = function(message: string) {
     (this as CommandoClient).LogMessage(message, LogLevel.TRACE);
 }
 
-CommandoClient.prototype.LogMessage = function(message: string, level: LogLevel)
+CommandoClient.prototype.LogMessage = _logMessage;
+
+Client.prototype.LogAnyError = function(data: any){
+    (this as Client).LogMessage(formatJsonMessage(data), LogLevel.ERROR);
+}
+Client.prototype.LogMessage = _logMessage;
+
+function _logMessage(message: string, level: LogLevel)
 {
   /* Event logging falls into different categories:
     - Informative - User has left the channel, Mod has set the topic, Role has been changed.

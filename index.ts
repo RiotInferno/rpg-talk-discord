@@ -1,14 +1,16 @@
 require('dotenv').config()
 
-import { Message, CategoryChannel, TextChannel, Guild, GuildMember, Role, MessageAttachment, Intents } from 'discord.js'
+import { Message, CategoryChannel, TextChannel, GuildMember, MessageAttachment, Intents } from 'discord.js'
 import * as _ from 'lodash'
 import * as moment from 'moment-timezone'
 import Dice from './dice'
-import { blacklisted, allChannels, detectGuild, mapToRoles, channelHasRole, createChannel, initializeBotAudit } from './utils'
+import { blacklisted, allChannels, detectGuild, channelHasRole, createChannel, InitialGreeting } from './utils'
 import { ChannelManager } from './channel_manager'
 import { Buffer } from 'buffer'
-import { ArgumentCollectorResult, Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
+import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando'
 import { initializeEvents } from './events'
+import './extensions'
+import './logging'
 
 let bot = new CommandoClient({
     owner: process.env.OWNER,
@@ -22,6 +24,29 @@ let bot = new CommandoClient({
                              'DIRECT_MESSAGES'])
     }
 });
+
+/* function InhibitPendingUsers(msg: CommandoMessage) : false | Inhibition {
+     if(msg.member['pending']){
+        return { 
+            reason: 'pending',
+            response: (msg.reply("please complete joining the server before using the bot.") as Promise<Message>)
+        };
+    }
+    return false;
+}
+ */
+if (process.env.ENABLE_SCREENING === 'true') {
+    //bot.dispatcher.addInhibitor(InhibitPendingUsers);
+    bot.dispatcher.addInhibitor((msg: CommandoMessage) => {
+        if (!(msg.member) || msg.member.pending) {
+            return {
+                reason: 'pending',
+                response: (msg.reply("please complete joining the server before using the bot.") as Promise<Message>)
+            };
+        }
+        return false;
+    });
+}
 
 bot.login(process.env.TOKEN);
 
@@ -169,7 +194,7 @@ let cocCommand = new Command(bot, {
     description: 'Announces the Code of Conduct'
 });
 
-cocCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+cocCommand.run = async (message: CommandoMessage): Promise<any> => {
     message.delete().catch(() => { });
     return message.channel.send(`Be sure to read our Code of Conduct at https://rpg-talk.com/code_of_conduct.pdf.`) as any;
 }
@@ -188,7 +213,7 @@ let piracyCommand = new Command(bot, {
     description: 'Announces RPG Talk\'s stance on piracy'
 });
 
-piracyCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+piracyCommand.run = async (message: CommandoMessage): Promise<any> => {
     message.delete().catch(() => { });
     return message.channel.send(`This community respects the rights of creators and in that, the promotion of pirated content and sources of pirated material is strictly forbidden. `
         + `Discussion of digital piracy is also frowned upon because of mishandling of this topic by both sides excluding its ethics which is normally forbidden. ` +
@@ -229,31 +254,31 @@ let statsCommand = new Command(bot, {
     description: 'per-channel user/mod stats'
 });
 
-statsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
-    try{
-    let guild = detectGuild(bot, message);
-    let channelList = allChannels(guild);
-    let stats = guild.roles.cache
-        .filter(r => r.name != process.env.MOD_ROLE.toLowerCase() && _.includes(channelList, r.name))
-        .map(r => ({
-             channelName: r.name,
-             memberCount: r.members.array().length,
-             modCount: r.members
-                .filter(m => _.includes(m.roles.cache.map(role => role.name.toLowerCase()),
-                             process.env.MOD_ROLE.toLowerCase()))
-                .array()
-                .length
-        }));
+statsCommand.run = async (message: CommandoMessage): Promise<any> => {
+    try {
+        let guild = detectGuild(bot, message);
+        let channelList = allChannels(guild);
+        let stats = guild.roles.cache
+            .filter(r => r.name != process.env.MOD_ROLE.toLowerCase() && _.includes(channelList, r.name))
+            .map(r => ({
+                channelName: r.name,
+                memberCount: r.members.array().length,
+                modCount: r.members
+                    .filter(m => _.includes(m.roles.cache.map(role => role.name.toLowerCase()),
+                        process.env.MOD_ROLE.toLowerCase()))
+                    .array()
+                    .length
+            }));
 
-    let response =  'Channel, Member Count, Moderator Count\n';
-    stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
+        let response = 'Channel, Member Count, Moderator Count\n';
+        stats.forEach(s => response += `${s.channelName},${s.memberCount},${s.modCount}\n`);
 
-    message.author.send(
-        'Here are the current channel stats',
-         new MessageAttachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
-         .catch(err => bot.LogAnyError(err));
-    message.delete().catch(() => { });
-    return undefined;
+        message.author.send(
+            'Here are the current channel stats',
+            new MessageAttachment(Buffer.from(response, 'utf-8'), `RPGTalk-stats-${new Date().valueOf()}.csv`))
+            .catch(err => bot.LogAnyError(err));
+        message.delete().catch(() => { });
+        return undefined;
     } catch (error) {
         bot.LogAnyError(error);
         return message.member.send(`Command failed: ${message.cleanContent}`) as any;
@@ -275,70 +300,68 @@ let channelsCommand = new Command(bot, {
     aliases: ['channel']
 });
 
-channelsCommand.run = async (message: CommandoMessage, args: string): Promise<any> => {
+channelsCommand.run = async (message: CommandoMessage): Promise<any> => {
     try {
         const defaultWidth = 20;
         const maxTopic = 1000;
         var guild = detectGuild(bot, message);
         const channelCategories = guild.channels.cache
-          .filter(channel => channel.type == 'category')
-          .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
-          .sort((a, b) => {
-            if (a.position > b.position ) {
-              return 1;
-            }
-            else if ( a.position < b.position ) {
-              return -1;
-            }
-            return 0;
-          });
+            .filter(channel => channel.type == 'category')
+            .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+            .sort((a, b) => {
+                if (a.position > b.position) {
+                    return 1;
+                }
+                else if (a.position < b.position) {
+                    return -1;
+                }
+                return 0;
+            });
 
         let response = "**__Channels__**\n";
         var line = '';
 
         channelCategories.forEach(category => {
-          response += `**${category.name}**\n`;
+            response += `**${category.name}**\n`;
 
-          var children = (<CategoryChannel>category).children
-            .filter(channel => channel.type == 'text')
-            .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
-            .sort((a, b) => {
-              if (a.position > b.position ) {
-                return 1;
-              }
-              else if ( a.position < b.position ) {
-                return -1;
-              }
-              return 0;
-            });
+            var children = (<CategoryChannel>category).children
+                .filter(channel => channel.type == 'text')
+                .filter(channel => !_.includes(blacklisted, channel.name.toLowerCase()))
+                .sort((a, b) => {
+                    if (a.position > b.position) {
+                        return 1;
+                    }
+                    else if (a.position < b.position) {
+                        return -1;
+                    }
+                    return 0;
+                });
 
-          children.forEach(channel => {
-            if (channelHasRole(channel.name, guild))
-            {
-              line = '';
-              var channelTopic = "";
-              if (typeof channel !== 'undefined')
-              {
-                  channelTopic = ((<TextChannel>channel).topic || '(no topic)');
-              }
+            children.forEach(channel => {
+                if (channelHasRole(channel.name, guild)) {
+                    line = '';
+                    var channelTopic = "";
+                    if (typeof channel !== 'undefined') {
+                        channelTopic = ((<TextChannel>channel).topic || '(no topic)');
+                    }
 
-              var pad_length = defaultWidth - channel.name.length;
-              if (pad_length <= 0 ) {
-                pad_length = 1;
-              }
-              var padding = ' '.repeat(pad_length);
-              line += `\`` + channel.name + padding + `- \`` + channelTopic.substring(0, maxTopic);
-              line += '\n'
+                    var pad_length = defaultWidth - channel.name.length;
+                    if (pad_length <= 0) {
+                        pad_length = 1;
+                    }
+                    var padding = ' '.repeat(pad_length);
+                    line += `\`` + channel.name + padding + `- \`` + channelTopic.substring(0, maxTopic);
+                    line += '\n'
 
-              if ((line.length + response.length) > 1500) {
-                  message.author.send(response)
-                    .catch(err => bot.LogAnyError(err))
-                  response = ""
-              }
-              response += line;
-            }
-          } )
-          line += `\n`;
+                    if ((line.length + response.length) > 1500) {
+                        message.author.send(response)
+                            .catch(err => bot.LogAnyError(err))
+                        response = ""
+                    }
+                    response += line;
+                }
+            })
+            line += `\n`;
         });
 
         response += '\n**To join a channel**, type `/join channel_name`.'
@@ -497,43 +520,26 @@ console.log('Connecting...');
 bot.on('ready', () => {
     console.log('Running');
     bot.guilds.cache.forEach(guild => guild.member(bot.user).setNickname('RPG Talk Bot')
-         .catch(err => bot.LogAnyError(err)));
+        .catch(err => bot.LogAnyError(err)));
     bot.user.setPresence({
         status: "online",
         activity: { name: "/help and /channels" }
     });
 });
 
-bot.on('guildMemberAdd', async (member) => {
-    let defaultRoleNames = (process.env.DEFAULT || '')
-        .split(',')
-        .filter(name => name)
-        .map(name => name.trim())
-        .filter(name => name.length > 0)
-
-    try {
-        bot.LogInfo(`${member.user.tag} has joined the server at server time ${member.joinedAt.toISOString()}`)
-        let defaultRoles = defaultRoleNames
-            .map(name => member.guild.roles.cache.find(role => role.name ===  name))
-            .filter(role => role)
-
-        member.roles.add(defaultRoles)
-         .catch(err => bot.LogAnyError(err));
-        
-        bot.LogInfo(`${member.user.tag} should have the default roles of ${defaultRoleNames}`);
-    } catch (error) {
-        bot.LogAnyError(error);
+bot.on('guildMemberUpdate', async (oldMember, newMember) => {
+    if (process.env.ENABLE_SCREENING === 'true') {
+        // in the future, we'll be able to validate oldmember.pending vs newmember.pending.
+        // Member passed membership screening
+        if (oldMember.pending && !newMember.pending) {
+            InitialGreeting(bot, newMember);
+        }
     }
+});
 
-    try {
-        member.send(`Thanks for joining **${member.guild.name}**.\n\n` +
-            `There are many more channels beyond the ${defaultRoleNames.length + 1} default ones. ` +
-            `There are **${allChannels(member.guild).length}** in total!\n\n` +
-            `Discover them all by entering the **/channels** command here.\n\n` +
-            `Be sure to review the Code of Conduct in our #rules channels`)
-            .catch(err => bot.LogAnyError(err));
-    } catch (error) {
-        bot.LogAnyError(error);
+bot.on('guildMemberAdd', async (member) => {
+    if (process.env.ENABLE_SCREENING !== 'true') {
+        InitialGreeting(bot, member);
     }
 });
 
